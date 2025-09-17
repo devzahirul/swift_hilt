@@ -5,6 +5,7 @@ SwiftHilt is a lightweight, type‑safe dependency injection toolkit for Swift. 
 
 Table of Contents
 - What You Get
+- Global Quick Start
 - Installation
 - Quick Start (Pure Swift)
 - Step‑by‑Step Guide
@@ -28,6 +29,15 @@ What You Get
 - Simple DSL to register providers and multibindings.
 - Property wrappers for convenience where appropriate (`@Injected`, SwiftUI `@EnvironmentInjected`).
 - DAG recorder: observe actual runtime edges, compute a topological order, and export to Graphviz DOT.
+
+Global Quick Start
+```swift
+import SwiftHilt
+install { provide(Api.self) { _ in RealApi() } }
+register(Repo.self) { r in Repo(api: r.resolve()) }
+let api: Api = resolve()
+let repo: Repo = resolve()
+```
 
 Installation
 - Swift Package Manager: open the folder with `Package.swift` in Xcode or add the repo URL as a dependency in your project.
