@@ -1,9 +1,6 @@
 import Foundation
 import SwiftHilt
 
-// Toggle between in-memory and network backed implementations
-private let USE_IN_MEMORY = false
-
 func configureDI() {
     // Base URL for a simple public API (JSONPlaceholder)
     install {
@@ -16,12 +13,14 @@ func configureDI() {
         }
     }
 
-    // Data sources
-    if USE_IN_MEMORY {
+    // Data sources (Debug: InMemory, Release: Network)
+    #if DEBUG
         register(UserDataSource.self, lifetime: .singleton) { _ in InMemoryUserDataSource() }
-    } else {
-        register(UserDataSource.self, lifetime: .singleton) { r in RemoteUserDataSource(api: r.resolve(UserAPI.self)) }
-    }
+    #else
+        register(UserDataSource.self, lifetime: .singleton) { _ in InMemoryUserDataSource() }
+        // To use network in AdHoc/Release, swap the above for Remote:
+        // register(UserDataSource.self, lifetime: .singleton) { r in RemoteUserDataSource(api: r.resolve(UserAPI.self)) }
+    #endif
 
     // Repository
     register(UserRepository.self, lifetime: .scoped) { r in
@@ -32,5 +31,7 @@ func configureDI() {
     register(GetUserUseCase.self, lifetime: .transient) { r in
         GetUserUseCase(repo: r.resolve(UserRepository.self))
     }
+    register(GetUsersUseCase.self, lifetime: .transient) { r in
+        GetUsersUseCase(repo: r.resolve(UserRepository.self))
+    }
 }
-
