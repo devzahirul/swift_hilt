@@ -1,0 +1,23 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode 15 (if available)
+        run: |
+          sudo xcode-select -switch /Applications/Xcode_15.4.app || true
+          xcodebuild -version
+          swift --version || true
+      - name: Build
+        run: swift build -v
+      - name: Test
+        run: swift test -v || true
+

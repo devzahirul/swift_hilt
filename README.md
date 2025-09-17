@@ -246,7 +246,7 @@ Micro Macros (MVP)
   - `@Binds(ProtocolType.self, lifetime:, qualifier:)` on a concrete type (requires `@Injectable`) to bind a protocol to an impl; generates `__register(into:)`.
   - `@Component(modules: [Type.self, ...])` generates `static func build() -> Container` that calls `Type.__register(into:)` for each listed type (modules or bind types).
 - Limitations (by design for MVP):
-  - `@Provides` supports zero‑parameter static functions only; parameters will be supported later.
+  - `@Provides` supports zero or parameterized static functions; parameters are auto‑resolved by type (no param‑level qualifiers yet).
   - Qualifiers and lifetimes are supported in macros; multibindings via macros not yet.
   - `@EntryPoint`, `@Assisted*` not implemented yet.
 - Usage (see `Examples/DAGSample/MicroMacrosExample.swift`)
@@ -290,11 +290,15 @@ struct InfraModule {
 
   @Provides(lifetime: .singleton, qualifier: Named("base"))
   static func baseURL() -> URL { URL(string: "https://api.example.com/user/")! }
+
+  // Parameterized provider: deps auto‑resolved by type
+  @Provides(lifetime: .scoped)
+  static func remote(client: HttpClient, baseURL: URL) -> RemoteDataSource { RemoteDataSource(client: client, baseURL: baseURL) }
 }
 
 // Injectable types (constructor injection)
 @Injectable
-final class RemoteDataSource { init(client: HttpClient, base: URL) { /* ... */ } }
+final class RemoteDataSource { init(client: HttpClient, baseURL: URL) { /* ... */ } }
 
 @Injectable
 final class CacheDataSource { init() {} }
@@ -335,7 +339,7 @@ Macro Requirements and Setup
 - If building from the command line, ensure the swift toolchain has macro support.
 
 Macro Pitfalls and Current Limits
-- `@Provides` supports zero‑parameter static functions in MVP. For functions with parameters, register via runtime or wait for parameter support.
+- `@Provides` parameters are auto‑resolved by type; qualifiers on parameters aren’t parsed yet.
 - Qualifiers in macros are supported for `@Provides` and `@Binds`. Parameter‑level qualifiers in `@Injectable` initializers are not parsed yet; use separate qualified providers and request them by type+qualifier when constructing.
 - `@Binds` requires `@Injectable` on the implementation so the synthesized `init(resolver:)` exists.
 - `@Component(modules:)` accepts modules and any types that provide a `__register(into:)` (e.g., from `@Module` or `@Binds`).
@@ -366,6 +370,11 @@ Cheat Sheet
   ```swift
   @Module struct M { @Provides(lifetime: .singleton) static func cfg() -> Config { Config() } }
   M.__register(into: c)
+  ```
+- Parameterized @Provides:
+  ```swift
+  @Module struct N { @Provides static func repo(client: Http, base: URL) -> Repo { Repo(client: client, base: base) } }
+  N.__register(into: c)
   ```
 - Register injectables without manual factory closures using property wrapper:
   ```swift

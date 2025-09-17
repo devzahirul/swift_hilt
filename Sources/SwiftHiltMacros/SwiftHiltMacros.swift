@@ -11,6 +11,7 @@ struct SwiftHiltPlugin: CompilerPlugin {
         ModuleMacro.self,
         ComponentMacro.self,
         BindsMacro.self,
+        EntryPointMacro.self,
     ]
 }
 
@@ -78,9 +79,6 @@ public struct ModuleMacro: MemberMacro {
             let hasProvides = funcDecl.attributes?.contains(where: { ($0.as(AttributeSyntax.self)?.attributeName.description ?? "").contains("Provides") }) == true
             guard hasProvides else { continue }
             guard let returnType = funcDecl.signature.output?.returnType.description.trimmingCharacters(in: .whitespacesAndNewlines), !returnType.isEmpty else { continue }
-            // micro version: only zero-parameter providers
-            guard funcDecl.signature.input.parameterList.isEmpty else { continue }
-
             // Extract @Provides arguments if present on this function
             var lifetimeExpr: String? = nil
             var qualifierExpr: String? = nil
@@ -98,11 +96,17 @@ public struct ModuleMacro: MemberMacro {
                     }
                 }
             }
+            // Build resolver argument list from function parameters (types only; no qualifier support yet)
+            var paramResolutions: [String] = []
+            for p in funcDecl.signature.input.parameterList {
+                guard let ty = p.type?.description.trimmingCharacters(in: .whitespacesAndNewlines), !ty.isEmpty else { continue }
+                paramResolutions.append("r.resolve(\(ty).self)")
+            }
 
             var call = "c.register(\(returnType).self"
             if let q = qualifierExpr { call += ", qualifier: \(q)" } else { call += ", qualifier: nil" }
             if let l = lifetimeExpr { call += ", lifetime: \(l)" }
-            call += ") { _ in \(typeName).\(funcDecl.name.text)() }"
+            call += ") { r in \(typeName).\(funcDecl.name.text)(\(paramResolutions.joined(separator: ", "))) }"
             let callLine = call
             registerCalls.append(callLine)
         }
@@ -222,5 +226,39 @@ public struct BindsMacro: MemberMacro {
         call += ") { r in \(typeName)(resolver: r) } }"
         let out = try! DeclSyntax("extension \(raw: typeName) {\n\(raw: call)\n}")
         return [out]
+    }
+}
+
+// MARK: - @EntryPoint on protocols: generates a Container adapter
+
+public struct EntryPointMacro: PeerMacro {
+    public static func expansion(of node: AttributeSyntax,
+                                 providingPeersOf decl: some DeclSyntaxProtocol,
+                                 in context: some MacroExpansionContext) throws -> [DeclSyntax] {
+        guard let p = decl.as(ProtocolDeclSyntax.self) else { return [] }
+        let protoName = p.identifier.text
+        let adapterName = "\(protoName)_EntryAdapter"
+        // Collect var requirements with getters only
+        var propDecls: [String] = []
+        for member in p.memberBlock.members {
+            if let varReq = member.decl.as(VariableDeclSyntax.self) {
+                // Expect a simple requirement like: var x: Type { get }
+                guard let binding = varReq.bindings.first,
+                      let type = binding.typeAnnotation?.type.description.trimmingCharacters(in: .whitespacesAndNewlines) else { continue }
+                // get property name
+                let name: String
+                if let pattern = binding.pattern.as(IdentifierPatternSyntax.self) {
+                    name = pattern.identifier.text
+                } else { continue }
+                propDecls.append("public var \(name): \(type) { resolver.resolve(\(type).self) }")
+            }
+        }
+        let propsBody = propDecls.map { "    \($0)" }.joined(separator: "\n")
+
+        let adapter = "struct \(adapterName): \(protoName) {\n    let resolver: Resolver\n\(propsBody.isEmpty ? "" : propsBody + "\n")}" 
+        let ext = "extension Container { public func entryPoint(_ t: \(protoName).Type) -> \(protoName) { \(adapterName)(resolver: self) } }"
+        let adapterDecl = try! DeclSyntax(adapter)
+        let extDecl = try! DeclSyntax(ext)
+        return [adapterDecl, extDecl]
     }
 }
