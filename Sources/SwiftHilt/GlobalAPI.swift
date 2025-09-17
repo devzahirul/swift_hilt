@@ -20,17 +20,15 @@ public enum SwiftHiltRuntime {
 
 // MARK: - Global resolution shortcuts
 
-@inlinable
+
 public func resolve<T>(_ type: T.Type = T.self, qualifier: (any Qualifier)? = nil) -> T {
     SwiftHiltRuntime.currentResolver.resolve(type, qualifier: qualifier)
 }
 
-@inlinable
 public func optional<T>(_ type: T.Type = T.self, qualifier: (any Qualifier)? = nil) -> T? {
     SwiftHiltRuntime.currentResolver.optional(type, qualifier: qualifier)
 }
 
-@inlinable
 public func resolveMany<T>(_ type: T.Type = T.self, qualifier: (any Qualifier)? = nil) -> [T] {
     SwiftHiltRuntime.currentResolver.resolveMany(type, qualifier: qualifier)
 }

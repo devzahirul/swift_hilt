@@ -4,7 +4,7 @@ import PackageDescription
 let package = Package(
     name: "SwiftHilt",
     platforms: [
-        .iOS(.v13),
+        .iOS(.v16),
         .macOS(.v11),
         .tvOS(.v13),
         .watchOS(.v6)
@@ -33,6 +33,14 @@ let package = Package(
             name: "SwiftHiltDemo",
             dependencies: ["SwiftHilt"],
             path: "Examples/SwiftHiltDemo",
+            resources: [
+                .process("Resources")
+            ]
+        ),
+        .executableTarget(
+            name: "SwiftHiltDemo_iOS",
+            dependencies: ["SwiftHilt"],
+            path: "Examples/SwiftHiltDemo_iOS/SwiftHiltDemo_iOS",
             resources: [
                 .process("Resources")
             ]
