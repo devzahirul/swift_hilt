@@ -329,6 +329,14 @@ struct Root {}
 // Build container
 let c = Root.build()
 
+// Optional: typed entry points (composition root API)
+@EntryPoint
+protocol UseCaseEntryPoint {
+  var getUserUseCase: GetUserUseCase { get }
+}
+let ep = c.entryPoint(UseCaseEntryPoint.self)
+let useCase = ep.getUserUseCase
+
 // Use
 let useCase = c.resolve(GetUserUseCase.self)
 ```

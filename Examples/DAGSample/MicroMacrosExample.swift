@@ -46,6 +46,20 @@ struct AppBindingsModule {
     @Register(.transient) static var getUserUseCase: GetUserUseCase
 }
 
+// MARK: - EntryPoint for composition roots
+
+@EntryPoint
+protocol UseCaseEntryPoint {
+    var getUserUseCase: GetUserUseCase { get }
+}
+
+// Usage example (commented out to avoid side-effects in sample main):
+// let c = AppComponent.build()
+// NetworkModule.__register(into: c)
+// AppBindingsModule.__register(into: c)
+// let ep = c.entryPoint(UseCaseEntryPoint.self)
+// let useCase = ep.getUserUseCase
+
 // Usage (commented to avoid duplicate symbol conflicts with main sample):
 // let container2 = AppComponent.build()
 // container2.register(RemoteDataSource2.self) { r in RemoteDataSource2(resolver: r) }
