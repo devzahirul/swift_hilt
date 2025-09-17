@@ -137,19 +137,18 @@ final class RemoteDataSource { init(client: HttpClient, baseURL: URL) { /* ... *
 final class CacheDataSource { /* ... */ }
 final class UserRepositoryImpl: UserRepository { init(remote: RemoteDataSource, cache: CacheDataSource) { /* ... */ } /* ... */ }
 
-// Composition
-let c = Container()
-c.install {
+// Composition (global)
+install {
   provide(URL.self, qualifier: Named("prodBase"), lifetime: .singleton) { _ in URL(string: "https://api.example.com/user/")! }
   provide(HttpClient.self, lifetime: .singleton) { _ in HttpClient() }
 }
-c.register(RemoteDataSource.self) { r in RemoteDataSource(client: r.resolve(HttpClient.self), baseURL: r.resolve(URL.self, qualifier: Named("prodBase"))) }
-c.register(CacheDataSource.self, lifetime: .singleton) { _ in CacheDataSource() }
-c.register(UserRepository.self) { r in UserRepositoryImpl(remote: r.resolve(RemoteDataSource.self), cache: r.resolve(CacheDataSource.self)) }
-c.register(GetUserUseCase.self, lifetime: .transient) { r in GetUserUseCase(repo: r.resolve(UserRepository.self)) }
+register(RemoteDataSource.self) { r in RemoteDataSource(client: r.resolve(HttpClient.self), baseURL: r.resolve(URL.self, qualifier: Named("prodBase"))) }
+register(CacheDataSource.self, lifetime: .singleton) { _ in CacheDataSource() }
+register(UserRepository.self) { r in UserRepositoryImpl(remote: r.resolve(RemoteDataSource.self), cache: r.resolve(CacheDataSource.self)) }
+register(GetUserUseCase.self, lifetime: .transient) { r in GetUserUseCase(repo: r.resolve(UserRepository.self)) }
 
 // Use
-let getUser = c.resolve(GetUserUseCase.self)
+let getUser: GetUserUseCase = resolve()
 let user = getUser("123")
 ```
 

@@ -25,7 +25,11 @@ func makeAppContainer() -> Container {
 
 @main
 struct SwiftHiltDemo_iOSApp: App {
-    private let container: Container = makeAppContainer()
+    private let container: Container = {
+        let c = makeAppContainer()
+        useContainer(c)
+        return c
+    }()
 
     var body: some Scene {
         WindowGroup {

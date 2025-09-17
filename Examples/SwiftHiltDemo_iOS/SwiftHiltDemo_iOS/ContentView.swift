@@ -3,7 +3,6 @@ import SwiftHilt
 
 struct ContentView: View {
     @EnvironmentInjected var api: ApiService
-    @Environment(\.diResolver) private var resolver
     @State private var message = ""
 
     var body: some View {
@@ -26,7 +25,7 @@ struct ContentView: View {
     private func fetch() { message = api.fetchMessage() }
 
     private func showMiddlewares() {
-        let middlewares: [Middleware] = resolver.resolveMany(Middleware.self)
+        let middlewares: [Middleware] = resolveMany(Middleware.self)
         message = middlewares.reduce("base") { $1.process($0) }
     }
 }

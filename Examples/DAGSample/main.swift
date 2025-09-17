@@ -46,39 +46,34 @@ final class UserRepositoryImpl: UserRepository {
     }
 }
 
-// MARK: - Composition
+// MARK: - Composition via global helpers
 
-let container = Container()
+install {
+    provide(URL.self, qualifier: Named("prodBase"), lifetime: .singleton) { _ in URL(string: "https://api.example.com/user/")! }
+    provide(HttpClient.self, lifetime: .singleton) { _ in HttpClient() }
+}
 
-// Provide primitives / infrastructure
-container.register(URL.self, qualifier: Named("prodBase"), lifetime: .singleton) { _ in URL(string: "https://api.example.com/user/")! }
-container.register(HttpClient.self, lifetime: .singleton) { _ in HttpClient() }
-
-// Data sources and repository
-container.register(RemoteDataSource.self, lifetime: .scoped) { r in
+register(RemoteDataSource.self, lifetime: .scoped) { r in
     RemoteDataSource(client: r.resolve(HttpClient.self), baseURL: r.resolve(URL.self, qualifier: Named("prodBase")))
 }
-container.register(CacheDataSource.self, lifetime: .singleton) { _ in CacheDataSource() }
-container.register(UserRepository.self, lifetime: .scoped) { r in
+register(CacheDataSource.self, lifetime: .singleton) { _ in CacheDataSource() }
+register(UserRepository.self, lifetime: .scoped) { r in
     UserRepositoryImpl(remote: r.resolve(RemoteDataSource.self), cache: r.resolve(CacheDataSource.self))
 }
-
-// Use case
-container.register(GetUserUseCase.self, lifetime: .transient) { r in GetUserUseCase(repo: r.resolve(UserRepository.self)) }
+register(GetUserUseCase.self, lifetime: .transient) { r in GetUserUseCase(repo: r.resolve(UserRepository.self)) }
 
 // MARK: - Run with DAG recording
 
-container.startRecording()
+startRecording()
 
 // Execute a path
-let useCase = container.resolve(GetUserUseCase.self)
+let useCase: GetUserUseCase = resolve()
 let user = useCase("123")
 print("Resolved:", user)
 
 // Export Graphviz DOT of the observed dependency graph
-if let dot = container.exportDOT() {
+if let dot = exportDOT() {
     print("\n--- DOT ---\n\(dot)")
 } else {
     print("\nNo DOT available (recording not started or empty graph)")
 }
-
