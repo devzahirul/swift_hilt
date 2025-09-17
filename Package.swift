@@ -18,6 +18,10 @@ let package = Package(
             name: "SwiftHiltDemo",
             targets: ["SwiftHiltDemo"]
         ),
+        .executable(
+            name: "DAGSample",
+            targets: ["DAGSample"]
+        ),
     ],
     targets: [
         .target(
@@ -31,6 +35,11 @@ let package = Package(
             resources: [
                 .process("Resources")
             ]
+        ),
+        .executableTarget(
+            name: "DAGSample",
+            dependencies: ["SwiftHilt"],
+            path: "Examples/DAGSample"
         ),
         .testTarget(
             name: "SwiftHiltTests",

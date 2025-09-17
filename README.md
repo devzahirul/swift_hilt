@@ -109,3 +109,8 @@ Example App
 - See example sources in `Examples/SwiftHiltDemo/`.
 - An iOS SwiftUI Xcode project is included: `Examples/SwiftHiltDemo_iOS/SwiftHiltDemo_iOS.xcodeproj`.
 - Open it, then File > Add Package Dependencies… > Add Local… and choose the repo root (with `Package.swift`), selecting the `SwiftHilt` product for the app target.
+
+DAG Sample (Pure Swift)
+- Executable target `DAGSample` demonstrates Clean Architecture constructor injection (domain/data/usecase) and DAG recording/export.
+- Open the package in Xcode and run the `DAGSample` scheme. The console prints a Graphviz DOT of the observed dependency graph.
+- Or via command line: `swift run DAGSample` (requires local toolchain access).

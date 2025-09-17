@@ -197,7 +197,7 @@ public final class Container: Resolver {
 // No global container singleton. Supply a resolver via ResolverContext.with(_) or SwiftUI environment.
 public extension Container {
     /// Begin recording dependency edges during resolutions in this container.
-    func startRecording() { dagRecorder = DAGRecorder() }
+    public func startRecording() { dagRecorder = DAGRecorder() }
 
     /// Stop recording and return a snapshot of the dependency graph.
     func stopRecording() -> (nodes: Set<ServiceKey>, edges: [ServiceKey: Set<ServiceKey>])? {
@@ -213,7 +213,7 @@ public extension Container {
     }
 
     /// Export the recorded graph in DOT format (Graphviz).
-    func exportDOT() -> String? {
+    public func exportDOT() -> String? {
         guard let rec = dagRecorder else { return nil }
         do { return try buildTopologicalPlan(nodes: rec.nodes, edges: rec.edges).dot() }
         catch { return nil }
