@@ -114,7 +114,7 @@ API Reference
 - Property Wrappers
   - `@Injected var dep: T` — resolves from `ResolverContext.current`.
   - `@EnvironmentInjected var dep: T` — SwiftUI only, resolves from environment (optional; see later).
-  - `@Inject var dep: T` — resolves from an enclosing instance that conforms to `HasResolver` (pure Swift, no macros).
+  - `@Inject var dep: T` — resolves from environment (Task/Thread/Global) or an enclosing `HasResolver`.
 
 Clean Architecture Example
 ```swift
@@ -157,6 +157,19 @@ final class MyFeature: HasResolver {
   init(container: Container) { self.resolver = container }
 
   func run() { /* use repo */ }
+}
+```
+
+Inject Without Passing Container (Environment)
+```swift
+let app = Container()
+// register...
+Injection.with(app) {
+  final class ServiceUser {
+    @Inject(UserRepository.self) var repo // type is optional in init; here shown explicitly
+    func run() { /* repo available via environment */ }
+  }
+  ServiceUser().run()
 }
 ```
 

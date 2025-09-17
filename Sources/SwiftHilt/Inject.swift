@@ -1,12 +1,12 @@
 import Foundation
 
-/// Inject dependency from an enclosing instance that conforms to `HasResolver`.
-/// Usage:
-///   final class VM: HasResolver {
-///     let resolver: Resolver
-///     @Inject var api: Api
-///     init(resolver: Resolver) { self.resolver = resolver }
-///   }
+/// Inject dependency from the current environment or enclosing instance's resolver.
+/// Resolution order:
+/// 1) If the enclosing instance conforms to `HasResolver`, use its resolver
+/// 2) If a task-local resolver is set via `Injection.with(...)`, use that
+/// 3) If a thread-local resolver is set via `ResolverContext.with(...)`, use that
+/// 4) If a global default is set via `Injection.globalDefault`, use that
+/// Otherwise: fatalError with guidance.
 @propertyWrapper
 public struct Inject<T> {
     private let qualifier: Qualifier?
@@ -16,13 +16,17 @@ public struct Inject<T> {
         self.qualifier = qualifier
     }
 
+    // Convenience initializer to allow syntax: @Inject(T.self)
+    public init(_ type: T.Type) { self.qualifier = nil }
+    public init(_ type: T.Type, qualifier: Qualifier?) { self.qualifier = qualifier }
+
     // Accessed if used without enclosing-instance support
     public var wrappedValue: T {
         get { fatalError("@Inject requires enclosing type to conform to HasResolver.") }
         mutating set { cached = newValue }
     }
 
-    public static subscript<EnclosingSelf: HasResolver>(
+    public static subscript<EnclosingSelf: AnyObject>(
         _enclosingInstance instance: EnclosingSelf,
         wrapped wrappedKeyPath: ReferenceWritableKeyPath<EnclosingSelf, T>,
         storage storageKeyPath: ReferenceWritableKeyPath<EnclosingSelf, Inject<T>>
@@ -30,7 +34,21 @@ public struct Inject<T> {
         get {
             var wrapper = instance[keyPath: storageKeyPath]
             if let v = wrapper.cached { return v }
-            let v: T = instance.resolver.resolve(T.self, qualifier: wrapper.qualifier)
+            // 1) HasResolver on enclosing instance
+            if let has = instance as? HasResolver {
+                let v: T = has.resolver.resolve(T.self, qualifier: wrapper.qualifier)
+                wrapper.cached = v
+                instance[keyPath: storageKeyPath] = wrapper
+                return v
+            }
+            // 2) TaskLocal / 3) ThreadLocal / 4) Global default
+            if let env = Injection.current {
+                let v: T = env.resolve(T.self, qualifier: wrapper.qualifier)
+                wrapper.cached = v
+                instance[keyPath: storageKeyPath] = wrapper
+                return v
+            }
+            fatalError("@Inject could not find a resolver. Use Injection.with(container) { ... }, ResolverContext.with(container) { ... }, set Injection.globalDefault, or make the enclosing type conform to HasResolver.")
             wrapper.cached = v
             instance[keyPath: storageKeyPath] = wrapper
             return v
@@ -42,4 +60,3 @@ public struct Inject<T> {
         }
     }
 }
-
