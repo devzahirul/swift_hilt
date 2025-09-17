@@ -1,120 +1,239 @@
-SwiftHilt — A pragmatic DI container for Swift inspired by Hilt
-===============================================================
+SwiftHilt — A pragmatic, DAG‑aware DI for Swift (inspired by Hilt)
+=================================================================
 
-SwiftHilt is a lightweight, type-safe dependency injection toolkit for Swift. It borrows the best ideas from Android Hilt (components, scopes, modules, and qualifiers) and adapts them for Swift and SwiftUI without code generation.
+SwiftHilt is a lightweight, type‑safe dependency injection toolkit for Swift. It focuses on pure Swift constructor injection (Clean Architecture), offers scopes and qualifiers, supports multibindings, and includes a DAG recorder so you can visualize dependency graphs. SwiftUI/UIKit integrations are optional and kept separate from core DI.
 
-Highlights
-- Type-safe resolution with qualifiers (e.g., `Named("api")`).
-- Scopes: `singleton`, `scoped` (per-container), and `transient` lifetimes.
-- Hierarchical containers for lifecycle-bound scoping (app -> scene -> view controller -> view).
-- Property wrappers: `@Injected` (context-based) and `@EnvironmentInjected` (SwiftUI).
-- Multibindings via `resolveMany` and `contribute` DSL.
-- Simple module DSL with `provide {}` and `contribute {}`.
+Table of Contents
+- What You Get
+- Installation
+- Quick Start (Pure Swift)
+- Core Concepts
+- API Reference
+- Clean Architecture Example
+- DAG Recording and Visualization
+- Scopes and Lifetimes
+- Qualifiers
+- Multibindings (Set/Map)
+- Threading and Safety
+- Testing Guidance
+- SwiftUI and UIKit (Optional)
+- Roadmap (Macros and More)
 
-Quick Start (Runtime, no globals)
+What You Get
+- Type‑safe resolution using concrete types and optional qualifiers.
+- Scopes: `singleton`, `scoped` (per container), `transient`.
+- Hierarchical containers for lifecycle scoping (parent → child).
+- Simple DSL to register providers and multibindings.
+- Property wrappers for convenience where appropriate (`@Injected`, SwiftUI `@EnvironmentInjected`).
+- DAG recorder: observe actual runtime edges, compute a topological order, and export to Graphviz DOT.
+
+Installation
+- Swift Package Manager: open the folder with `Package.swift` in Xcode or add the repo URL as a dependency in your project.
+- Minimum platforms: iOS 13, macOS 11, tvOS 13, watchOS 6.
+- Minimum Swift: 5.7 for the core library. Swift 5.9 will be required once macros are added (see Roadmap).
+
+Quick Start (Pure Swift, No Globals)
 1) Define and register services
-```
-protocol Api: Sendable {}
+```swift
+protocol Api {}
 final class RealApi: Api {}
 
-let app = Container()
-
-app.install {
+let container = Container()
+container.install {
   provide(Api.self, lifetime: .singleton) { _ in RealApi() }
 }
 ```
 
-2) Inject via property wrappers
+2) Resolve where needed
+```swift
+let api = container.resolve(Api.self)
+// optionally optional or many
+let maybe = container.optional(Api.self)
 ```
-final class VM {
-  // Use Injected within an explicit resolver context
-  @Injected var api: Api
-  init(container: Container) {
-    ResolverContext.with(container) { _ = api } // materialize if desired
+
+3) Constructor injection (Clean Architecture)
+```swift
+final class Repository {
+  let api: Api
+  init(api: Api) { self.api = api }
+}
+
+container.register(Repository.self, lifetime: .scoped) { r in
+  Repository(api: r.resolve(Api.self))
+}
+
+let repo = container.resolve(Repository.self)
+```
+
+Core Concepts
+- Container: The DI registry and resolver. Supports parent/child hierarchies.
+- Resolver: Minimal protocol used by providers to resolve dependencies.
+- Lifetime: Caching strategy per binding: `.singleton`, `.scoped`, `.transient`.
+- Qualifier: Disambiguates multiple bindings for the same type (e.g., `Named("prod")`).
+- Multibindings: Register multiple providers under the same type, resolved as `[T]`.
+- Modules DSL: `install { provide(...) { ... }; contribute(...) { ... } }`.
+- ResolverContext: Thread‑local resolver for `@Injected` in non‑SwiftUI code.
+- DAG Recorder: Captures observed edges during resolution to visualize and validate.
+
+API Reference
+- Container
+  - `init(parent: Container? = nil)`
+  - `func child() -> Container` — creates a child scope (inherits parent bindings, separate scoped cache).
+  - `func clearCache()` — clears this container’s local caches (scoped and resident singletons owned by it).
+  - `@discardableResult func register<T>(_ type: T.Type = T.self, qualifier: Qualifier? = nil, lifetime: Lifetime = .singleton, factory: @escaping (Resolver) -> T) -> Self`
+  - `@discardableResult func registerMany<T>(_ type: T.Type = T.self, qualifier: Qualifier? = nil, _ factory: @escaping (Resolver) -> T) -> Self`
+  - `func resolve<T>(_ type: T.Type = T.self, qualifier: Qualifier? = nil) -> T`
+  - `func optional<T>(_ type: T.Type = T.self, qualifier: Qualifier? = nil) -> T?`
+  - `func resolveMany<T>(_ type: T.Type = T.self, qualifier: Qualifier? = nil) -> [T]`
+  - DAG utilities:
+    - `func startRecording()` — observe provider→dependency edges during resolution.
+    - `func exportDOT() -> String?` — Graphviz DOT for the observed graph.
+    - `func prewarmSingletons()` — eagerly instantiate singletons to validate wiring and warm caches.
+
+- Lifetime
+  - `.singleton` — one instance per container that owns registration; visible to children.
+  - `.scoped` — one instance per resolving container; distinct in each scope.
+  - `.transient` — a new instance every resolve.
+
+- Qualifiers
+  - `protocol Qualifier: Hashable`
+  - `struct Named: Qualifier, ExpressibleByStringLiteral` — `Named("prod")`, `"prod"`
+  - Custom qualifiers can be simple structs conforming to `Qualifier`.
+
+- Modules DSL
+  - `func install(@ModuleBuilder _ builder: () -> [Registration])`
+  - `func provide<T>(_ type: T.Type = T.self, qualifier: Qualifier? = nil, lifetime: Lifetime = .singleton, _ factory: @escaping (Resolver) -> T) -> Registration`
+  - `func contribute<T>(_ type: T.Type = T.self, qualifier: Qualifier? = nil, _ factory: @escaping (Resolver) -> T) -> Registration` (multibindings)
+
+- ResolverContext (pure Swift convenience)
+  - `ResolverContext.with(_ resolver: Resolver, _ body: () throws -> T) rethrows -> T`
+  - `ResolverContext.current` (thread‑local)
+  - Works with `@Injected` to resolve without plumbing the container through every function signature.
+
+- Property Wrappers
+  - `@Injected var dep: T` — resolves from `ResolverContext.current`.
+  - `@EnvironmentInjected var dep: T` — SwiftUI only, resolves from environment (optional; see later).
+
+Clean Architecture Example
+```swift
+// Domain
+protocol UserRepository { func get(id: String) -> User }
+struct GetUserUseCase {
+  let repo: UserRepository
+  init(repo: UserRepository) { self.repo = repo }
+  func callAsFunction(_ id: String) -> User { repo.get(id: id) }
+}
+
+// Data
+final class HttpClient { /* ... */ }
+final class RemoteDataSource { init(client: HttpClient, baseURL: URL) { /* ... */ } /* ... */ }
+final class CacheDataSource { /* ... */ }
+final class UserRepositoryImpl: UserRepository { init(remote: RemoteDataSource, cache: CacheDataSource) { /* ... */ } /* ... */ }
+
+// Composition
+let c = Container()
+c.install {
+  provide(URL.self, qualifier: Named("prodBase"), lifetime: .singleton) { _ in URL(string: "https://api.example.com/user/")! }
+  provide(HttpClient.self, lifetime: .singleton) { _ in HttpClient() }
+}
+c.register(RemoteDataSource.self) { r in RemoteDataSource(client: r.resolve(HttpClient.self), baseURL: r.resolve(URL.self, qualifier: Named("prodBase"))) }
+c.register(CacheDataSource.self, lifetime: .singleton) { _ in CacheDataSource() }
+c.register(UserRepository.self) { r in UserRepositoryImpl(remote: r.resolve(RemoteDataSource.self), cache: r.resolve(CacheDataSource.self)) }
+c.register(GetUserUseCase.self, lifetime: .transient) { r in GetUserUseCase(repo: r.resolve(UserRepository.self)) }
+
+// Use
+let getUser = c.resolve(GetUserUseCase.self)
+let user = getUser("123")
+```
+
+DAG Recording and Visualization
+- Why: See the graph you actually use at runtime; catch cycles; explain wiring to teammates.
+- How:
+  ```swift
+  c.startRecording()
+  _ = c.resolve(GetUserUseCase.self)
+  if let dot = c.exportDOT() { print(dot) }
+  ```
+- DOT can be rendered with Graphviz (`dot -Tpng graph.dot > graph.png`) or online viewers.
+- Notes:
+  - Edges are recorded when providers resolve dependencies.
+  - `resolveMany` creates a pseudo aggregator node `[T]` with edges `[T] -> T`.
+  - For deep graphs, record a representative startup path (e.g., composition root resolves) to capture meaningful edges.
+
+Scopes and Lifetimes
+- `.singleton`
+  - Cached where the provider is registered; shared with children.
+  - Good for clients (HTTP, DB), configs, caches.
+- `.scoped`
+  - Cached in the currently resolving container (per scope).
+  - Good for request/feature/session‑scoped state.
+- `.transient`
+  - No caching; a new instance every resolve.
+  - Good for lightweight value objects or stateless helpers when lifetime control isn’t needed.
+
+Qualifiers
+- Use `Named("prod")`, `Named("mock")` or define custom qualifier types for stronger typing.
+- Registration and resolution must specify the same qualifier to match.
+  ```swift
+  c.register(URL.self, qualifier: Named("prod")) { _ in URL(string: "...")! }
+  let url = c.resolve(URL.self, qualifier: Named("prod"))
+  ```
+
+Multibindings (Set/Array)
+- Register multiple providers for the same type and resolve as `[T]`.
+  ```swift
+  protocol Middleware {}
+  struct Log: Middleware {}
+  struct Metrics: Middleware {}
+
+  c.install {
+    contribute(Middleware.self) { _ in Log() }
+    contribute(Middleware.self) { _ in Metrics() }
   }
-}
-```
 
-3) SwiftUI integration
-```
-import SwiftUI
+  let middlewares: [Middleware] = c.resolveMany(Middleware.self)
+  ```
+- Map multibindings are a planned enhancement (see Roadmap).
 
-struct ContentView: View {
-  @EnvironmentInjected var api: Api
-  var body: some View { Text(String(describing: api)) }
-}
+Threading and Safety
+- The container uses a recursive lock; factories can resolve further dependencies safely.
+- Singletons are created under lock to ensure uniqueness per provider’s container.
+- `resolveMany` iterates parent → child to honor overrides and accumulate contributions.
 
-@main
-struct AppMain: App {
-  var body: some Scene {
-    WindowGroup {
-      let container = Container()
-      container.install {
-        provide(Api.self) { _ in RealApi() }
-      }
-      ContentView().diContainer(container)
-    }
+Testing Guidance
+- Build a dedicated test container and register test doubles; pass it where needed or set it in `ResolverContext` while executing the unit under test.
+  ```swift
+  let test = Container()
+  test.register(Api.self) { _ in FakeApi() }
+  ResolverContext.with(test) {
+    // code that uses @Injected or explicit resolution
   }
-}
-```
+  ```
+- You can also keep the main composition and override specific bindings before resolving entry points in tests.
+- Use `prewarmSingletons()` to detect misconfigurations early during test startup.
 
-4) Scopes and children
-```
-let app = Container()
-let screen = app.child()
+SwiftUI and UIKit (Optional)
+- SwiftUI
+  - `.diContainer(container)` injects a resolver into the environment.
+  - `@EnvironmentInjected var dep: T` resolves from the environment’s resolver.
+- UIKit
+  - `UIViewController.diContainer`: associated container per view controller; inherits from parent if not set.
+  - `UIViewController.makeScopedContainer()`: create a child container scoped to the view controller.
+- These are convenience layers; core DI is pure Swift and does not depend on UI frameworks.
 
-app.register(Int.self, lifetime: .singleton) { _ in 1 }
-app.register(String.self, lifetime: .scoped) { _ in UUID().uuidString }
+Roadmap (Macros and More)
+- Swift 5.9 Macros (planned)
+  - `@Injectable`: generate `init(resolver:)` for constructor injection.
+  - `@Provides` and `@Binds`: generate registration glue from functions and conformances.
+  - `@Module`/`@Component`: assemble modules into a typed component and emit `build()`.
+  - `@EntryPoint`: typed facades into the graph for composition roots.
+  - `@AssistedInject`/`@AssistedFactory`: factories that take runtime parameters + injected deps.
+- Validation
+  - Optional SwiftPM plugin to lint graphs and export DOT in CI.
+- Performance
+  - Freeze provider tables post‑build; eager singletons; microbenchmarks.
 
-let a1 = app.resolve(Int.self)        // same across app
-let s1 = screen.resolve(String.self)   // cached per screen container
-```
-
-5) Multibindings
-```
-protocol Middleware {}
-struct Log: Middleware {}
-struct Metrics: Middleware {}
-
-app.install {
-  contribute(Middleware.self) { _ in Log() }
-  contribute(Middleware.self) { _ in Metrics() }
-}
-
-let all = app.resolveMany(Middleware.self) // [Log(), Metrics()]
-```
-
-Design Notes
-- Container hierarchy mirrors Hilt’s components; use `child()` to enter a scope and `clearCache()` to release scoped instances.
-- `singleton` caches at the provider’s container; `scoped` caches at the resolving container; `transient` never caches.
-- Cycle detection triggers a fatal error in debug builds with a human-readable path.
-- No global `DI.shared`. Use runtime contexts:
-  - Non-SwiftUI: `ResolverContext.with(container) { ... }`
-  - SwiftUI: `.diContainer(container)` to provide environment resolver.
-- Future direction includes Swift Macros for `@Module`, `@Provides`, and `@Component` ergonomics without globals.
-
-Testing
-- Create a test container and use it in a scoped context: `ResolverContext.with(container) { /* run code under test */ }`.
-- For SwiftUI, inject the container via `.diContainer(...)` and use `@EnvironmentInjected`.
-
-Roadmap
-- Assisted injection/factories with typed arguments.
-- Named multibindings with Set semantics.
-- Eject/freeze phases for performance and misconfiguration checks.
-- Optional macro-based sugar and compile-time graph validation.
-
-Example App
-- A macOS SwiftUI demo is included as an executable target: `SwiftHiltDemo`.
-- Open the root folder (`Package.swift`) in Xcode, select the `SwiftHiltDemo` scheme, and run on "My Mac".
-- See example sources in `Examples/SwiftHiltDemo/`.
-- An iOS SwiftUI Xcode project is included: `Examples/SwiftHiltDemo_iOS/SwiftHiltDemo_iOS.xcodeproj`.
-- Open it, then File > Add Package Dependencies… > Add Local… and choose the repo root (with `Package.swift`), selecting the `SwiftHilt` product for the app target.
-
-DAG Sample (Pure Swift)
-- Executable target `DAGSample` demonstrates Clean Architecture constructor injection (domain/data/usecase) and DAG recording/export.
-- Open the package in Xcode and run the `DAGSample` scheme. The console prints a Graphviz DOT of the observed dependency graph.
-- Or via command line: `swift run DAGSample` (requires local toolchain access).
-
-Prewarm/Validate
-- Call `container.prewarmSingletons()` after building registrations to eagerly instantiate and validate all singletons.
-- Optionally surround your startup path with `startRecording()` and print `exportDOT()` for a quick sanity graph.
+Examples
+- macOS SwiftUI demo: `SwiftHiltDemo` (run the scheme in Xcode).
+- iOS SwiftUI demo: `Examples/SwiftHiltDemo_iOS/SwiftHiltDemo_iOS.xcodeproj`.
+- Pure Swift DAG sample: `DAGSample` (prints Graphviz DOT).
