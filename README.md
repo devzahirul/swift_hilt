@@ -34,23 +34,27 @@ Installation
 - Minimum platforms: iOS 13, macOS 11, tvOS 13, watchOS 6.
 - Minimum Swift: 5.7 for the core library. Swift 5.9 will be required once macros are added (see Roadmap).
 
-Quick Start (Pure Swift, No Globals)
-1) Define and register services
+Quick Start (Pure Swift)
+1) Define and register services (global convenience or explicit container)
 ```swift
 protocol Api {}
 final class RealApi: Api {}
 
+// Option A: global facade
+install { provide(Api.self, lifetime: .singleton) { _ in RealApi() } }
+let api: Api = resolve()
+
+// Option B: explicit container (recommended for larger apps)
 let container = Container()
-container.install {
-  provide(Api.self, lifetime: .singleton) { _ in RealApi() }
-}
+container.install { provide(Api.self, lifetime: .singleton) { _ in RealApi() } }
+let api2: Api = container.resolve()
 ```
 
 2) Resolve where needed
 ```swift
-let api = container.resolve(Api.self)
+let api = resolve(Api.self)
 // optionally optional or many
-let maybe = container.optional(Api.self)
+let maybe = optional(Api.self)
 ```
 
 3) Constructor injection (Clean Architecture)
@@ -60,11 +64,11 @@ final class Repository {
   init(api: Api) { self.api = api }
 }
 
-container.register(Repository.self, lifetime: .scoped) { r in
+register(Repository.self, lifetime: .scoped) { r in
   Repository(api: r.resolve(Api.self))
 }
 
-let repo = container.resolve(Repository.self)
+let repo: Repository = resolve()
 ```
 
 Core Concepts
