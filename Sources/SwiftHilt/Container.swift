@@ -114,6 +114,14 @@ public final class Container: Resolver {
 
     public func resolveMany<T>(_ type: T.Type = T.self, qualifier: Qualifier? = nil) -> [T] {
         let key = ServiceKey(type, qualifier: qualifier)
+        if let recorder = dagRecorder {
+            // Create an aggregator pseudo-node representing [T] with same qualifier
+            let aggKey = ServiceKey([T].self, qualifier: qualifier)
+            recorder.recordNode(aggKey)
+            if let from = recorder.currentBuilding { recorder.recordEdge(from: from, to: aggKey) }
+            // Also record edges from aggregator to each contribution type key
+            recorder.recordNode(key)
+        }
         var chain: [Container] = []
         var cursor: Container? = self
         while let c = cursor { chain.append(c); cursor = c.parent }
@@ -123,6 +131,10 @@ public final class Container: Resolver {
             let list = c.manyProviders[key] ?? []
             c.lock.unlock()
             for entry in list {
+                if let recorder = dagRecorder {
+                    let aggKey = ServiceKey([T].self, qualifier: qualifier)
+                    recorder.recordEdge(from: aggKey, to: key)
+                }
                 if let val = entry.factory(self) as? T { result.append(val) }
             }
         }
@@ -217,5 +229,25 @@ public extension Container {
         guard let rec = dagRecorder else { return nil }
         do { return try buildTopologicalPlan(nodes: rec.nodes, edges: rec.edges).dot() }
         catch { return nil }
+    }
+
+    /// Eagerly instantiate all singleton providers registered in this container hierarchy.
+    /// This validates wiring and warms caches without needing an explicit DAG.
+    public func prewarmSingletons() {
+        lock.lock(); let localProviders = providers; lock.unlock()
+        for (key, entry) in localProviders where entry.lifetime == .singleton {
+            _ = self.resolveByKey(key)
+        }
+        parent?.prewarmSingletons()
+    }
+
+    private func resolveByKey(_ key: ServiceKey) -> Any {
+        // Internal helper to resolve by key w/o exposing ServiceKey publicly
+        func resolveAny(_ c: Container, _ key: ServiceKey) -> Any {
+            // Switch on typeName string to attempt resolution via Any.Type reflection is not type-safe.
+            // But using the existing _resolve path avoids re-deriving type info.
+            do { return try c._resolve(key: key) } catch { fatalError(String(describing: error)) }
+        }
+        return resolveAny(self, key)
     }
 }

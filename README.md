@@ -114,3 +114,7 @@ DAG Sample (Pure Swift)
 - Executable target `DAGSample` demonstrates Clean Architecture constructor injection (domain/data/usecase) and DAG recording/export.
 - Open the package in Xcode and run the `DAGSample` scheme. The console prints a Graphviz DOT of the observed dependency graph.
 - Or via command line: `swift run DAGSample` (requires local toolchain access).
+
+Prewarm/Validate
+- Call `container.prewarmSingletons()` after building registrations to eagerly instantiate and validate all singletons.
+- Optionally surround your startup path with `startRecording()` and print `exportDOT()` for a quick sanity graph.
