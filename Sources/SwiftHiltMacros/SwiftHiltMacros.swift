@@ -10,6 +10,7 @@ struct SwiftHiltPlugin: CompilerPlugin {
         ProvidesMacro.self,
         ModuleMacro.self,
         ComponentMacro.self,
+        BindsMacro.self,
     ]
 }
 
@@ -76,9 +77,32 @@ public struct ModuleMacro: MemberMacro {
             let hasProvides = funcDecl.attributes?.contains(where: { ($0.as(AttributeSyntax.self)?.attributeName.description ?? "").contains("Provides") }) == true
             guard hasProvides else { continue }
             guard let returnType = funcDecl.signature.output?.returnType.description.trimmingCharacters(in: .whitespacesAndNewlines), !returnType.isEmpty else { continue }
-            // micro version: zero-parameter providers
+            // micro version: only zero-parameter providers
             guard funcDecl.signature.input.parameterList.isEmpty else { continue }
-            let callLine = "c.register(\(returnType).self) { _ in \(typeName).\(funcDecl.name.text)() }"
+
+            // Extract @Provides arguments if present on this function
+            var lifetimeExpr: String? = nil
+            var qualifierExpr: String? = nil
+            if let attrs = funcDecl.attributes {
+                for attr in attrs {
+                    guard let a = attr.as(AttributeSyntax.self) else { continue }
+                    guard (a.attributeName.description).contains("Provides") else { continue }
+                    if let args = a.argument?.as(TupleExprElementListSyntax.self) {
+                        for el in args {
+                            let label = el.label?.text ?? ""
+                            let expr = el.expression.description.trimmingCharacters(in: .whitespacesAndNewlines)
+                            if label == "lifetime" { lifetimeExpr = expr }
+                            if label == "qualifier" { qualifierExpr = expr }
+                        }
+                    }
+                }
+            }
+
+            var call = "c.register(\(returnType).self"
+            if let q = qualifierExpr { call += ", qualifier: \(q)" } else { call += ", qualifier: nil" }
+            if let l = lifetimeExpr { call += ", lifetime: \(l)" }
+            call += ") { _ in \(typeName).\(funcDecl.name.text)() }"
+            let callLine = call
             registerCalls.append(callLine)
         }
 
@@ -122,3 +146,43 @@ public struct ComponentMacro: MemberMacro {
     }
 }
 
+// MARK: - @Binds
+
+public struct BindsMacro: MemberMacro {
+    public static func expansion(of node: AttributeSyntax,
+                                 providingMembersOf decl: some DeclGroupSyntax,
+                                 in context: some MacroExpansionContext) throws -> [DeclSyntax] {
+        // Usage: @Binds(ProtocolType.self, lifetime: .scoped, qualifier: Named("x")) on a concrete type
+        // Generate: static func __register(into c: Container) { c.register(ProtocolType.self, qualifier: ..., lifetime: ...) { r in Self(resolver: r) } }
+
+        // Determine implementing type name
+        let typeName: String
+        if let s = decl.as(StructDeclSyntax.self) { typeName = s.identifier.text }
+        else if let c = decl.as(ClassDeclSyntax.self) { typeName = c.identifier.text }
+        else { return [] }
+
+        // Parse attribute arguments
+        var protocolTypeExpr: String? = nil
+        var lifetimeExpr: String? = nil
+        var qualifierExpr: String? = nil
+        if let args = node.argument?.as(TupleExprElementListSyntax.self) {
+            for (i, el) in args.enumerated() {
+                let label = el.label?.text
+                let expr = el.expression.description.trimmingCharacters(in: .whitespacesAndNewlines)
+                if i == 0 && label == nil { protocolTypeExpr = expr } // first unlabeled
+                if label == "to" { protocolTypeExpr = expr }
+                if label == "lifetime" { lifetimeExpr = expr }
+                if label == "qualifier" { qualifierExpr = expr }
+            }
+        }
+        guard let proto = protocolTypeExpr else { return [] }
+
+        let access = (decl.modifiers?.description.contains("public") == true) ? "public " : ""
+        var call = "\(access)static func __register(into c: Container) { c.register(\(proto)"
+        if let q = qualifierExpr { call += ", qualifier: \(q)" } else { call += ", qualifier: nil" }
+        if let l = lifetimeExpr { call += ", lifetime: \(l)" }
+        call += ") { r in \(typeName)(resolver: r) } }"
+        let out = try! DeclSyntax("extension \(raw: typeName) {\n\(raw: call)\n}")
+        return [out]
+    }
+}

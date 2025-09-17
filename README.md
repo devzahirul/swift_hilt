@@ -241,13 +241,14 @@ Examples
 Micro Macros (MVP)
 - A minimal macro target `SwiftHiltMacros` is included. It provides:
   - `@Injectable` on types with a designated `init(...)` to synthesize `init(resolver:)` using `resolver.resolve(...)` for each parameter.
-  - `@Provides` (marker) on zero‑parameter `static func` inside a `@Module` type.
-  - `@Module` generates `static func __register(into:)` that registers all `@Provides` functions.
-  - `@Component(modules: [Module.self, ...])` generates `static func build() -> Container` that assembles modules.
+  - `@Provides(lifetime:, qualifier:)` on zero‑parameter `static func` inside a `@Module` type.
+  - `@Module` generates `static func __register(into:)` that registers all `@Provides` functions with lifetime/qualifier.
+  - `@Binds(ProtocolType.self, lifetime:, qualifier:)` on a concrete type (requires `@Injectable`) to bind a protocol to an impl; generates `__register(into:)`.
+  - `@Component(modules: [Type.self, ...])` generates `static func build() -> Container` that calls `Type.__register(into:)` for each listed type (modules or bind types).
 - Limitations (by design for MVP):
-  - `@Provides` supports zero‑parameter static functions only; lifetime defaults to `.singleton` (can be tuned in a later pass).
-  - No qualifiers or multibinding in macros yet; use runtime APIs for those.
-  - `@Binds`, `@EntryPoint`, `@Assisted*` not implemented yet.
+  - `@Provides` supports zero‑parameter static functions only; parameters will be supported later.
+  - Qualifiers and lifetimes are supported in macros; multibindings via macros not yet.
+  - `@EntryPoint`, `@Assisted*` not implemented yet.
 - Usage (see `Examples/DAGSample/MicroMacrosExample.swift`)
   ```swift
   @Module
@@ -267,5 +268,7 @@ Micro Macros (MVP)
   // Build container and use synthesized init(resolver:)
   let c = AppComponent.build()
   c.register(RemoteDataSource2.self) { r in RemoteDataSource2(resolver: r) }
+  UserRepositoryImpl2.__register(into: c) // or include in @Component(modules: [..., UserRepositoryImpl2.self])
   let ds = c.resolve(RemoteDataSource2.self)
+  let repo: UserRepository = c.resolve(UserRepository.self)
   ```

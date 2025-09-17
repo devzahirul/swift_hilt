@@ -7,10 +7,10 @@ import SwiftHilt
 
 @Module
 struct NetworkModule {
-    @Provides
+    @Provides(lifetime: .singleton)
     static func httpClient() -> HttpClient { HttpClient() }
 
-    @Provides
+    @Provides(lifetime: .singleton, qualifier: Named("prodBase"))
     static func baseURL() -> URL { URL(string: "https://api.example.com/user/")! }
 }
 
@@ -29,8 +29,16 @@ final class RemoteDataSource2 {
     }
 }
 
+@Injectable
+@Binds(UserRepository.self, lifetime: .scoped)
+final class UserRepositoryImpl2: UserRepository {
+    let remote: RemoteDataSource2
+    init(remote: RemoteDataSource2) { self.remote = remote }
+    func getUser(id: String) -> User { remote.getUser(id: id) }
+}
+
 // Usage (commented to avoid duplicate symbol conflicts with main sample):
 // let container2 = AppComponent.build()
 // container2.register(RemoteDataSource2.self) { r in RemoteDataSource2(resolver: r) }
-// let rds = container2.resolve(RemoteDataSource2.self)
-
+// UserRepositoryImpl2.__register(into: container2) // or list in @Component modules
+// let repo2 = container2.resolve(UserRepository.self)
