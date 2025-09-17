@@ -13,7 +13,6 @@ struct ContentView: View {
             Divider()
             Button("Fetch Message") { fetch() }
             Button("Show Middlewares") { showMiddlewares() }
-                .tint(.secondary)
         }
         .padding(24)
         .onAppear { fetch() }
