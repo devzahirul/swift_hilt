@@ -131,7 +131,19 @@
 			buildActionMask = 2147483647;
 			files = (
 				1F7B6C532B5C400A00D9B001 /* SwiftHiltDemo_iOSApp.swift in Sources */,
-				1F7B6C542B5C400A00D9B001 /* ContentView.swift in Sources */,
+				A10000012E00000000000001 /* DI.swift in Sources */,
+				A10000032E00000000000001 /* HomeView.swift in Sources */,
+				A10000052E00000000000001 /* HomeViewModel.swift in Sources */,
+				A10000072E00000000000001 /* UsersListView.swift in Sources */,
+				A10000092E00000000000001 /* UsersListViewModel.swift in Sources */,
+				A100000B2E00000000000001 /* User.swift in Sources */,
+				A100000D2E00000000000001 /* UserRepository.swift in Sources */,
+				A100000F2E00000000000001 /* GetUserUseCase.swift in Sources */,
+				A10000112E00000000000001 /* GetUsersUseCase.swift in Sources */,
+				A10000132E00000000000001 /* UserAPI.swift in Sources */,
+				A10000152E00000000000001 /* UserDTO.swift in Sources */,
+				A10000172E00000000000001 /* UserDataSource.swift in Sources */,
+				A10000192E00000000000001 /* UserRepositoryImpl.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
