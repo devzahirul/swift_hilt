@@ -6,6 +6,12 @@ public protocol Resolver: AnyObject {
     func resolveMany<T>(_ type: T.Type, qualifier: (any Qualifier)?) -> [T]
 }
 
+public extension Resolver {
+    func resolve<T>(_ type: T.Type = T.self) -> T { resolve(type, qualifier: nil) }
+    func optional<T>(_ type: T.Type = T.self) -> T? { optional(type, qualifier: nil) }
+    func resolveMany<T>(_ type: T.Type = T.self) -> [T] { resolveMany(type, qualifier: nil) }
+}
+
 final class ProviderEntry {
     let lifetime: Lifetime
     let factory: (Resolver) -> Any
