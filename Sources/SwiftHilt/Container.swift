@@ -25,6 +25,9 @@ public final class Container: Resolver {
 
     private let lock = NSRecursiveLock()
 
+    // Optional DAG recorder for dependency graph introspection
+    var dagRecorder: DAGRecorder?
+
     public init(parent: Container? = nil) {
         self.parent = parent
     }
@@ -73,6 +76,13 @@ public final class Container: Resolver {
 
     public func resolve<T>(_ type: T.Type = T.self, qualifier: Qualifier? = nil) -> T {
         let key = ServiceKey(type, qualifier: qualifier)
+        // DAG introspection: record node and potential dependency from current building key
+        if let recorder = dagRecorder {
+            recorder.recordNode(key)
+            if let from = recorder.currentBuilding {
+                recorder.recordEdge(from: from, to: key)
+            }
+        }
         do {
             let any = try _resolve(key: key)
             guard let typed = any as? T else {
@@ -152,7 +162,14 @@ public final class Container: Resolver {
             }
             // Create instance (hold lock to ensure singletons are unique and factories are reentrant via recursive lock)
             let provider = entry!
-            let instance = provider.factory(self)
+            let instance: Any
+            if let recorder = dagRecorder {
+                recorder.pushBuilding(key)
+                instance = provider.factory(self)
+                recorder.popBuilding()
+            } else {
+                instance = provider.factory(self)
+            }
 
             switch provider.lifetime {
             case .transient:
@@ -178,3 +195,27 @@ public final class Container: Resolver {
 }
 
 // No global container singleton. Supply a resolver via ResolverContext.with(_) or SwiftUI environment.
+public extension Container {
+    /// Begin recording dependency edges during resolutions in this container.
+    func startRecording() { dagRecorder = DAGRecorder() }
+
+    /// Stop recording and return a snapshot of the dependency graph.
+    func stopRecording() -> (nodes: Set<ServiceKey>, edges: [ServiceKey: Set<ServiceKey>])? {
+        defer { dagRecorder = nil }
+        return dagRecorder?.snapshot()
+    }
+
+    /// Build a topological plan from the currently recorded graph.
+    func buildPlan() throws -> DAGPlan {
+        guard let rec = dagRecorder else { throw DAGPlanError(description: "Recording not started") }
+        let shot = rec.snapshot()
+        return try buildTopologicalPlan(nodes: shot.nodes, edges: shot.edges)
+    }
+
+    /// Export the recorded graph in DOT format (Graphviz).
+    func exportDOT() -> String? {
+        guard let rec = dagRecorder else { return nil }
+        do { return try buildTopologicalPlan(nodes: rec.nodes, edges: rec.edges).dot() }
+        catch { return nil }
+    }
+}
