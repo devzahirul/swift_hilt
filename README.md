@@ -9,6 +9,7 @@ Table of Contents
 - Installation
 - Quick Start (Pure Swift)
 - Step‑by‑Step Guide
+- MVVM + Clean Architecture (iOS)
 - Core Concepts
 - API Reference
 - Clean Architecture Example
@@ -176,30 +177,7 @@ let getUser: GetUserUseCase = resolve()
 let user = getUser("123")
 ```
 
-Inject Without Macros (HasResolver)
-```swift
-final class MyFeature: HasResolver {
-  let resolver: Resolver
-  @Inject var repo: UserRepository
 
-  init(container: Container) { self.resolver = container }
-
-  func run() { /* use repo */ }
-}
-```
-
-Inject Without Passing Container (Environment)
-```swift
-let app = Container()
-// register...
-Injection.with(app) {
-  final class ServiceUser {
-    @Inject(UserRepository.self) var repo // type is optional in init; here shown explicitly
-    func run() { /* repo available via environment */ }
-  }
-  ServiceUser().run()
-}
-```
 
 DAG Recording and Visualization
 - Why: See the graph you actually use at runtime; catch cycles; explain wiring to teammates.
@@ -292,6 +270,9 @@ Examples
 - macOS SwiftUI demo: `SwiftHiltDemo` (run the scheme in Xcode).
 - iOS SwiftUI demo: `Examples/SwiftHiltDemo_iOS/SwiftHiltDemo_iOS.xcodeproj`.
 - Pure Swift DAG sample: `DAGSample` (prints Graphviz DOT).
+
+Guides
+- MVVM + Clean Architecture (iOS): docs/MVVM_CleanArchitecture.md
 
 Micro Macros (MVP)
 - A minimal macro target `SwiftHiltMacros` is included. It provides:
