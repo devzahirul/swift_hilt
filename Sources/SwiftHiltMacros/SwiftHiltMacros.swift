@@ -62,7 +62,7 @@ public struct ModuleMacro: MemberMacro {
     public static func expansion(of node: AttributeSyntax,
                                  providingMembersOf decl: some DeclGroupSyntax,
                                  in context: some MacroExpansionContext) throws -> [DeclSyntax] {
-        // Find static funcs annotated with @Provides
+        // Find static funcs annotated with @Provides and vars annotated with @Register
         var registerCalls: [String] = []
         let typeName: String
         if let s = decl.as(StructDeclSyntax.self) {
@@ -71,6 +71,7 @@ public struct ModuleMacro: MemberMacro {
             typeName = c.identifier.text
         } else { return [] }
 
+        // 1) @Provides static functions (zero-parameter)
         for member in decl.memberBlock.members {
             guard let funcDecl = member.decl.as(FunctionDeclSyntax.self) else { continue }
             guard funcDecl.modifiers?.contains(where: { $0.name.text == "static" }) == true else { continue }
@@ -104,6 +105,43 @@ public struct ModuleMacro: MemberMacro {
             call += ") { _ in \(typeName).\(funcDecl.name.text)() }"
             let callLine = call
             registerCalls.append(callLine)
+        }
+
+        // 2) @Register static variables (metadata-only wrapper)
+        for member in decl.memberBlock.members {
+            guard let varDecl = member.decl.as(VariableDeclSyntax.self) else { continue }
+            guard varDecl.modifiers?.contains(where: { $0.name.text == "static" }) == true else { continue }
+            let hasRegisterAttr = varDecl.attributes?.contains(where: { ($0.as(AttributeSyntax.self)?.attributeName.description ?? "").contains("Register") }) == true
+            guard hasRegisterAttr else { continue }
+            // For each binding, get the annotated type
+            for binding in varDecl.bindings {
+                guard let annot = binding.typeAnnotation else { continue }
+                let ty = annot.type.description.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !ty.isEmpty else { continue }
+                // Extract lifetime and qualifier from the @Register attribute
+                var lifetimeExpr: String? = nil
+                var qualifierExpr: String? = nil
+                if let attrs = varDecl.attributes {
+                    for attr in attrs {
+                        guard let a = attr.as(AttributeSyntax.self) else { continue }
+                        guard (a.attributeName.description).contains("Register") else { continue }
+                        if let args = a.argument?.as(TupleExprElementListSyntax.self) {
+                            for (i, el) in args.enumerated() {
+                                let label = el.label?.text
+                                let expr = el.expression.description.trimmingCharacters(in: .whitespacesAndNewlines)
+                                if i == 0 && label == nil { lifetimeExpr = expr }
+                                if label == "lifetime" { lifetimeExpr = expr }
+                                if label == "qualifier" { qualifierExpr = expr }
+                            }
+                        }
+                    }
+                }
+                var call = "c.register(\(ty).self"
+                if let q = qualifierExpr { call += ", qualifier: \(q)" } else { call += ", qualifier: nil" }
+                if let l = lifetimeExpr { call += ", lifetime: \(l)" }
+                call += ") { r in \(ty)(resolver: r) }"
+                registerCalls.append(call)
+            }
         }
 
         let access = (decl.modifiers?.description.contains("public") == true) ? "public " : ""

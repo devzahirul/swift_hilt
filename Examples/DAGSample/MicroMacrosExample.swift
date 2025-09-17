@@ -37,6 +37,15 @@ final class UserRepositoryImpl2: UserRepository {
     func getUser(id: String) -> User { remote.getUser(id: id) }
 }
 
+// MARK: - Register injectables via property wrapper inside a module
+
+@Module
+struct AppBindingsModule {
+    @Register(.scoped) static var remoteDataSource: RemoteDataSource2
+    @Register(.singleton) static var cacheDataSource: CacheDataSource
+    @Register(.transient) static var getUserUseCase: GetUserUseCase
+}
+
 // Usage (commented to avoid duplicate symbol conflicts with main sample):
 // let container2 = AppComponent.build()
 // container2.register(RemoteDataSource2.self) { r in RemoteDataSource2(resolver: r) }

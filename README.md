@@ -294,8 +294,7 @@ struct InfraModule {
 
 // Injectable types (constructor injection)
 @Injectable
-final class RemoteDataSource { init(client: HttpClient, @InjectedURL base: URL) { /* ... */ } }
-// Note: qualifiers on parameters are not supported by macros yet; use runtime resolution
+final class RemoteDataSource { init(client: HttpClient, base: URL) { /* ... */ } }
 
 @Injectable
 final class CacheDataSource { init() {} }
@@ -312,13 +311,19 @@ final class UserRepositoryImpl: UserRepository {
 @Component(modules: [InfraModule.self, UserRepositoryImpl.self])
 struct AppComponent {}
 
-// Build and register remaining injectables using synthesized init(resolver:)
-let c = AppComponent.build()
-c.register(RemoteDataSource.self) { r in RemoteDataSource(resolver: r) }
-c.register(CacheDataSource.self, lifetime: .singleton) { r in CacheDataSource(resolver: r) }
+// Register remaining injectables via @Register in a bindings module
+@Module
+struct AppBindings {
+  @Register(.scoped) static var remoteDataSource: RemoteDataSource
+  @Register(.singleton) static var cacheDataSource: CacheDataSource
+  @Register(.transient) static var getUserUseCase: GetUserUseCase
+}
 
-// Compose higher‑level types with runtime registrations (no macro needed)
-c.register(GetUserUseCase.self, lifetime: .transient) { r in GetUserUseCase(repo: r.resolve(UserRepository.self)) }
+@Component(modules: [InfraModule.self, UserRepositoryImpl.self, AppBindings.self])
+struct Root {}
+
+// Build container
+let c = Root.build()
 
 // Use
 let useCase = c.resolve(GetUserUseCase.self)
@@ -331,7 +336,7 @@ Macro Requirements and Setup
 
 Macro Pitfalls and Current Limits
 - `@Provides` supports zero‑parameter static functions in MVP. For functions with parameters, register via runtime or wait for parameter support.
-- Qualifiers in macros are supported for `@Provides` and `@Binds`, but not yet on `@Injectable` parameters. Use runtime resolution inside factories when qualifiers are needed.
+- Qualifiers in macros are supported for `@Provides` and `@Binds`. Parameter‑level qualifiers in `@Injectable` initializers are not parsed yet; use separate qualified providers and request them by type+qualifier when constructing.
 - `@Binds` requires `@Injectable` on the implementation so the synthesized `init(resolver:)` exists.
 - `@Component(modules:)` accepts modules and any types that provide a `__register(into:)` (e.g., from `@Module` or `@Binds`).
 
@@ -361,6 +366,12 @@ Cheat Sheet
   ```swift
   @Module struct M { @Provides(lifetime: .singleton) static func cfg() -> Config { Config() } }
   M.__register(into: c)
+  ```
+- Register injectables without manual factory closures using property wrapper:
+  ```swift
+  @Injectable final class Foo { init(bar: Bar) {} }
+  @Module struct Binds { @Register(.scoped) static var foo: Foo }
+  Binds.__register(into: c) // registers Foo using synthesized init(resolver:)
   ```
 - Compose a component from modules:
   ```swift
