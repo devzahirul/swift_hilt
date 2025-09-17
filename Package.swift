@@ -9,9 +9,6 @@ let package = Package(
         .tvOS(.v13),
         .watchOS(.v6)
     ],
-    dependencies: [
-        .package(url: "https://github.com/apple/swift-syntax.git", from: "509.0.0")
-    ],
     products: [
         .library(
             name: "SwiftHilt",
@@ -30,13 +27,12 @@ let package = Package(
             targets: ["SwiftHiltMacros"]
         ),
     ],
+    dependencies: [
+        .package(url: "https://github.com/apple/swift-syntax.git", from: "509.0.0")
+    ],
     targets: [
         .target(
             name: "SwiftHilt",
-            dependencies: [
-                // Re-export macros for convenience if present
-                .target(name: "SwiftHiltMacros", condition: .when(platforms: [.iOS, .macOS, .tvOS, .watchOS]))
-            ],
             path: "Sources/SwiftHilt"
         ),
         .executableTarget(
