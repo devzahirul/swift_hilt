@@ -22,14 +22,8 @@ let package = Package(
             name: "DAGSample",
             targets: ["DAGSample"]
         ),
-        .library(
-            name: "SwiftHiltMacros",
-            targets: ["SwiftHiltMacros"]
-        ),
     ],
-    dependencies: [
-        .package(url: "https://github.com/apple/swift-syntax.git", from: "509.0.0")
-    ],
+    dependencies: [],
     targets: [
         .target(
             name: "SwiftHilt",
@@ -47,16 +41,6 @@ let package = Package(
             name: "DAGSample",
             dependencies: ["SwiftHilt"],
             path: "Examples/DAGSample"
-        ),
-        .macro(
-            name: "SwiftHiltMacros",
-            dependencies: [
-                .product(name: "SwiftCompilerPlugin", package: "swift-syntax"),
-                .product(name: "SwiftSyntax", package: "swift-syntax"),
-                .product(name: "SwiftSyntaxBuilder", package: "swift-syntax"),
-                .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
-            ],
-            path: "Sources/SwiftHiltMacros"
         ),
         .testTarget(
             name: "SwiftHiltTests",

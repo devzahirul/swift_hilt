@@ -1,6 +1,7 @@
 import Foundation
 import SwiftHilt
 
+#if canImport(SwiftHiltMacros)
 // Demonstrates micro macros usage (requires Swift 5.9 toolchain)
 
 // MARK: - Providers via @Module/@Provides
@@ -59,6 +60,7 @@ protocol UseCaseEntryPoint {
 // AppBindingsModule.__register(into: c)
 // let ep = c.entryPoint(UseCaseEntryPoint.self)
 // let useCase = ep.getUserUseCase
+#endif
 
 // Usage (commented to avoid duplicate symbol conflicts with main sample):
 // let container2 = AppComponent.build()
