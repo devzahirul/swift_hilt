@@ -1,4 +1,4 @@
-// swift-tools-version:5.7
+// swift-tools-version:5.9
 import PackageDescription
 
 let package = Package(
@@ -8,6 +8,9 @@ let package = Package(
         .macOS(.v11),
         .tvOS(.v13),
         .watchOS(.v6)
+    ],
+    dependencies: [
+        .package(url: "https://github.com/apple/swift-syntax.git", from: "509.0.0")
     ],
     products: [
         .library(
@@ -22,10 +25,18 @@ let package = Package(
             name: "DAGSample",
             targets: ["DAGSample"]
         ),
+        .library(
+            name: "SwiftHiltMacros",
+            targets: ["SwiftHiltMacros"]
+        ),
     ],
     targets: [
         .target(
             name: "SwiftHilt",
+            dependencies: [
+                // Re-export macros for convenience if present
+                .target(name: "SwiftHiltMacros", condition: .when(platforms: [.iOS, .macOS, .tvOS, .watchOS]))
+            ],
             path: "Sources/SwiftHilt"
         ),
         .executableTarget(
@@ -40,6 +51,16 @@ let package = Package(
             name: "DAGSample",
             dependencies: ["SwiftHilt"],
             path: "Examples/DAGSample"
+        ),
+        .macro(
+            name: "SwiftHiltMacros",
+            dependencies: [
+                .product(name: "SwiftCompilerPlugin", package: "swift-syntax"),
+                .product(name: "SwiftSyntax", package: "swift-syntax"),
+                .product(name: "SwiftSyntaxBuilder", package: "swift-syntax"),
+                .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
+            ],
+            path: "Sources/SwiftHiltMacros"
         ),
         .testTarget(
             name: "SwiftHiltTests",

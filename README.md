@@ -237,3 +237,35 @@ Examples
 - macOS SwiftUI demo: `SwiftHiltDemo` (run the scheme in Xcode).
 - iOS SwiftUI demo: `Examples/SwiftHiltDemo_iOS/SwiftHiltDemo_iOS.xcodeproj`.
 - Pure Swift DAG sample: `DAGSample` (prints Graphviz DOT).
+
+Micro Macros (MVP)
+- A minimal macro target `SwiftHiltMacros` is included. It provides:
+  - `@Injectable` on types with a designated `init(...)` to synthesize `init(resolver:)` using `resolver.resolve(...)` for each parameter.
+  - `@Provides` (marker) on zero‑parameter `static func` inside a `@Module` type.
+  - `@Module` generates `static func __register(into:)` that registers all `@Provides` functions.
+  - `@Component(modules: [Module.self, ...])` generates `static func build() -> Container` that assembles modules.
+- Limitations (by design for MVP):
+  - `@Provides` supports zero‑parameter static functions only; lifetime defaults to `.singleton` (can be tuned in a later pass).
+  - No qualifiers or multibinding in macros yet; use runtime APIs for those.
+  - `@Binds`, `@EntryPoint`, `@Assisted*` not implemented yet.
+- Usage (see `Examples/DAGSample/MicroMacrosExample.swift`)
+  ```swift
+  @Module
+  struct NetworkModule {
+    @Provides static func httpClient() -> HttpClient { HttpClient() }
+    @Provides static func baseURL() -> URL { URL(string: "https://api.example.com")! }
+  }
+
+  @Component(modules: [NetworkModule.self])
+  struct AppComponent {}
+
+  @Injectable
+  final class RemoteDataSource2 {
+    init(client: HttpClient, baseURL: URL) { /* ... */ }
+  }
+
+  // Build container and use synthesized init(resolver:)
+  let c = AppComponent.build()
+  c.register(RemoteDataSource2.self) { r in RemoteDataSource2(resolver: r) }
+  let ds = c.resolve(RemoteDataSource2.self)
+  ```
