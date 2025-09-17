@@ -7,6 +7,7 @@ Table of Contents
 - What You Get
 - Installation
 - Quick Start (Pure Swift)
+- Step‑by‑Step Guide
 - Core Concepts
 - API Reference
 - Clean Architecture Example
@@ -393,6 +394,135 @@ digraph Dependencies {
   "UserRepository" -> "RemoteDataSource";
   "RemoteDataSource" -> "HttpClient";
   "RemoteDataSource" -> "URL @Named(prodBase)";
+}
+```
+
+Step‑by‑Step Guide
+------------------
+
+This hands‑on tutorial shows a complete Clean Architecture setup (Domain/Data/Infra), using only runtime APIs and the `@Inject` property wrapper with environment injection. No SwiftUI or macros required.
+
+1) Define your domain contracts and use case
+```swift
+// Domain
+struct User { let id: String; let name: String }
+
+protocol UserRepository { func get(id: String) -> User }
+
+struct GetUserUseCase {
+  let repo: UserRepository
+  init(repo: UserRepository) { self.repo = repo }
+  func callAsFunction(_ id: String) -> User { repo.get(id: id) }
+}
+```
+
+2) Implement your data layer (repository + data sources + infra)
+```swift
+// Infra
+final class HttpClient { func get(_ url: URL) -> [String: Any] { ["id": url.lastPathComponent, "name": "Alice"] } }
+
+// Data sources
+final class RemoteDataSource {
+  let client: HttpClient
+  let baseURL: URL
+  init(client: HttpClient, baseURL: URL) { self.client = client; self.baseURL = baseURL }
+  func get(id: String) -> User { let j = client.get(baseURL.appendingPathComponent(id)); return User(id: j["id"] as! String, name: j["name"] as! String) }
+}
+final class CacheDataSource { private var store: [String: User] = [:]; func save(_ u: User) { store[u.id] = u }; func get(id: String) -> User? { store[id] } }
+
+// Repository implementation
+final class UserRepositoryImpl: UserRepository {
+  let remote: RemoteDataSource
+  let cache: CacheDataSource
+  init(remote: RemoteDataSource, cache: CacheDataSource) { self.remote = remote; self.cache = cache }
+  func get(id: String) -> User { if let u = cache.get(id: id) { return u }; let u = remote.get(id: id); cache.save(u); return u }
+}
+```
+
+3) Build the container and register dependencies
+```swift
+import SwiftHilt
+
+let container = Container()
+
+// Primitives and infra
+container.install {
+  provide(URL.self, qualifier: Named("prodBase"), lifetime: .singleton) { _ in URL(string: "https://api.example.com/user/")! }
+  provide(HttpClient.self, lifetime: .singleton) { _ in HttpClient() }
+}
+
+// Constructor injection for data sources and repository
+container.register(RemoteDataSource.self, lifetime: .scoped) { r in
+  RemoteDataSource(client: r.resolve(HttpClient.self), baseURL: r.resolve(URL.self, qualifier: Named("prodBase")))
+}
+container.register(CacheDataSource.self, lifetime: .singleton) { _ in CacheDataSource() }
+container.register(UserRepository.self, lifetime: .scoped) { r in
+  UserRepositoryImpl(remote: r.resolve(RemoteDataSource.self), cache: r.resolve(CacheDataSource.self))
+}
+
+// Use case
+container.register(GetUserUseCase.self, lifetime: .transient) { r in GetUserUseCase(repo: r.resolve(UserRepository.self)) }
+```
+
+4) Validate and (optionally) visualize the graph
+```swift
+// Eagerly build singletons to catch misconfiguration early
+container.prewarmSingletons()
+
+// Record a representative path and export DOT (optional)
+container.startRecording()
+_ = container.resolve(GetUserUseCase.self)
+if let dot = container.exportDOT() { print(dot) } // view with Graphviz
+```
+
+5) Use `@Inject` without passing the container around
+```swift
+// @Inject reads from the environment (TaskLocal → ThreadLocal → Global) or an enclosing HasResolver
+final class ServiceUser {
+  @Inject(UserRepository.self) var repo
+  func run() { print(repo.get(id: "123")) }
+}
+
+Injection.with(container) {
+  ServiceUser().run() // repo is resolved via environment
+}
+```
+
+6) Scope boundaries with child containers
+```swift
+let feature = container.child() // new scope
+let scopedA = feature.resolve(RemoteDataSource.self)
+let scopedB = feature.resolve(RemoteDataSource.self)
+assert(scopedA === scopedB) // because RemoteDataSource is .scoped
+```
+
+7) Testing and overrides
+```swift
+let test = Container()
+test.register(UserRepository.self) { _ in
+  struct FakeRepo: UserRepository { func get(id: String) -> User { User(id: id, name: "Test") } }
+  return FakeRepo()
+}
+Injection.with(test) {
+  // Code under test using @Inject will see the test container
+}
+```
+
+8) Optional: SwiftUI
+```swift
+// Provide a container into the environment at the root view
+struct AppMain: App {
+  let container: Container = {
+    let c = Container(); /* register as above */; return c
+  }()
+  var body: some Scene {
+    WindowGroup { ContentView().diContainer(container) }
+  }
+}
+
+struct ContentView: View {
+  @EnvironmentInjected var useCase: GetUserUseCase
+  var body: some View { Text(String(describing: useCase("123"))) }
 }
 ```
 
