@@ -7,18 +7,17 @@ Highlights
 - Type-safe resolution with qualifiers (e.g., `Named("api")`).
 - Scopes: `singleton`, `scoped` (per-container), and `transient` lifetimes.
 - Hierarchical containers for lifecycle-bound scoping (app -> scene -> view controller -> view).
-- Property wrappers: `@Injected` (global) and `@EnvironmentInjected` (SwiftUI).
+- Property wrappers: `@Injected` (context-based) and `@EnvironmentInjected` (SwiftUI).
 - Multibindings via `resolveMany` and `contribute` DSL.
 - Simple module DSL with `provide {}` and `contribute {}`.
 
-Quick Start
+Quick Start (Runtime, no globals)
 1) Define and register services
 ```
 protocol Api: Sendable {}
 final class RealApi: Api {}
 
 let app = Container()
-DI.shared = app
 
 app.install {
   provide(Api.self, lifetime: .singleton) { _ in RealApi() }
@@ -28,7 +27,11 @@ app.install {
 2) Inject via property wrappers
 ```
 final class VM {
+  // Use Injected within an explicit resolver context
   @Injected var api: Api
+  init(container: Container) {
+    ResolverContext.with(container) { _ = api } // materialize if desired
+  }
 }
 ```
 
@@ -45,7 +48,11 @@ struct ContentView: View {
 struct AppMain: App {
   var body: some Scene {
     WindowGroup {
-      ContentView().diContainer(DI.shared)
+      let container = Container()
+      container.install {
+        provide(Api.self) { _ in RealApi() }
+      }
+      ContentView().diContainer(container)
     }
   }
 }
@@ -81,10 +88,13 @@ Design Notes
 - Container hierarchy mirrors Hilt’s components; use `child()` to enter a scope and `clearCache()` to release scoped instances.
 - `singleton` caches at the provider’s container; `scoped` caches at the resolving container; `transient` never caches.
 - Cycle detection triggers a fatal error in debug builds with a human-readable path.
-- No build-time code generation; future direction includes Swift 5.9 macros for `@Module`, `@Provides`, and `@Component` ergonomics.
+- No global `DI.shared`. Use runtime contexts:
+  - Non-SwiftUI: `ResolverContext.with(container) { ... }`
+  - SwiftUI: `.diContainer(container)` to provide environment resolver.
+- Future direction includes Swift Macros for `@Module`, `@Provides`, and `@Component` ergonomics without globals.
 
 Testing
-- Override registrations in a test container and set `DI.shared = testContainer`.
+- Create a test container and use it in a scoped context: `ResolverContext.with(container) { /* run code under test */ }`.
 - For SwiftUI, inject the container via `.diContainer(...)` and use `@EnvironmentInjected`.
 
 Roadmap

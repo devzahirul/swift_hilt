@@ -27,11 +27,7 @@ func makeAppContainer() -> Container {
 
 @main
 struct SwiftHiltDemoApp: App {
-    private let container: Container = {
-        let c = makeAppContainer()
-        DI.shared = c
-        return c
-    }()
+    private let container: Container = makeAppContainer()
 
     var body: some Scene {
         WindowGroup {
@@ -39,4 +35,3 @@ struct SwiftHiltDemoApp: App {
         }
     }
 }
-

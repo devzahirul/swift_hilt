@@ -7,14 +7,15 @@ import ObjectiveC
 private var diAssociationKey: UInt8 = 0
 
 public extension UIViewController {
-    /// A DI container associated with this view controller. Falls back to parent's container or DI.shared.
+    /// A DI container associated with this view controller. Falls back to parent's container.
+    /// If neither is set, a fresh container is created (unconfigured) which will fail to resolve missing providers.
     var diContainer: Container {
         get {
             if let c = objc_getAssociatedObject(self, &diAssociationKey) as? Container {
                 return c
             }
             if let parent = parent { return parent.diContainer }
-            return DI.shared
+            return Container()
         }
         set { objc_setAssociatedObject(self, &diAssociationKey, newValue, .OBJC_ASSOCIATION_RETAIN_NONATOMIC) }
     }
@@ -28,4 +29,3 @@ public extension UIViewController {
 }
 
 #endif
-

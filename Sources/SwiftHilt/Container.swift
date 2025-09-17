@@ -3,6 +3,7 @@ import Foundation
 public protocol Resolver: AnyObject {
     func resolve<T>(_ type: T.Type, qualifier: Qualifier?) -> T
     func optional<T>(_ type: T.Type, qualifier: Qualifier?) -> T?
+    func resolveMany<T>(_ type: T.Type, qualifier: Qualifier?) -> [T]
 }
 
 final class ProviderEntry {
@@ -176,7 +177,4 @@ public final class Container: Resolver {
     }
 }
 
-public enum DI {
-    public static var shared: Container = Container()
-}
-
+// No global container singleton. Supply a resolver via ResolverContext.with(_) or SwiftUI environment.

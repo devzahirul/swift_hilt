@@ -3,32 +3,40 @@ import Foundation
 #if canImport(SwiftUI)
 import SwiftUI
 
-public struct DIContainerKey: EnvironmentKey {
-    public static let defaultValue: Container = DI.shared
+private final class UnconfiguredResolver: Resolver {
+    func resolve<T>(_ type: T.Type, qualifier: Qualifier?) -> T {
+        fatalError("No DI container provided in SwiftUI environment. Use .diContainer(_:) at the root view.")
+    }
+    func optional<T>(_ type: T.Type, qualifier: Qualifier?) -> T? { nil }
+}
+
+public struct DIResolverKey: EnvironmentKey {
+    public static let defaultValue: Resolver = UnconfiguredResolver()
 }
 
 public extension EnvironmentValues {
-    var diContainer: Container {
-        get { self[DIContainerKey.self] }
-        set { self[DIContainerKey.self] = newValue }
+    var diResolver: Resolver {
+        get { self[DIResolverKey.self] }
+        set { self[DIResolverKey.self] = newValue }
     }
 }
 
 public extension View {
+    /// Injects the given container as the resolver into the SwiftUI environment.
     func diContainer(_ container: Container) -> some View {
-        environment(\.diContainer, container)
+        environment(\.diResolver, container)
     }
 }
 
 @propertyWrapper
 public struct EnvironmentInjected<T>: DynamicProperty {
-    @Environment(\.diContainer) private var container: Container
+    @Environment(\.diResolver) private var resolver: Resolver
     private let qualifier: Qualifier?
 
     public init(_ qualifier: Qualifier? = nil) { self.qualifier = qualifier }
 
     public var wrappedValue: T {
-        container.resolve(T.self, qualifier: qualifier)
+        resolver.resolve(T.self, qualifier: qualifier)
     }
 }
 

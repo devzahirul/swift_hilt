@@ -3,6 +3,7 @@ import SwiftHilt
 
 struct ContentView: View {
     @EnvironmentInjected var api: ApiService
+    @Environment(\.diResolver) private var resolver
     @State private var message: String = ""
 
     var body: some View {
@@ -23,8 +24,8 @@ struct ContentView: View {
     }
 
     private func showMiddlewares() {
-        // Resolve an array via multibindings
-        let middlewares: [Middleware] = DI.shared.resolveMany(Middleware.self)
+        // Resolve an array via multibindings from the environment resolver
+        let middlewares: [Middleware] = resolver.resolveMany(Middleware.self)
         let base = "base"
         let processed = middlewares.reduce(base) { acc, mw in mw.process(acc) }
         message = processed
@@ -44,4 +45,3 @@ struct ContentView_Previews: PreviewProvider {
 
     struct PreviewApiService: ApiService { func fetchMessage() -> String { "Hello from Preview" } }
 }
-
