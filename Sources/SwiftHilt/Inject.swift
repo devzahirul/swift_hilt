@@ -49,9 +49,6 @@ public struct Inject<T> {
                 return v
             }
             fatalError("@Inject could not find a resolver. Use Injection.with(container) { ... }, ResolverContext.with(container) { ... }, set Injection.globalDefault, or make the enclosing type conform to HasResolver.")
-            wrapper.cached = v
-            instance[keyPath: storageKeyPath] = wrapper
-            return v
         }
         set {
             var wrapper = instance[keyPath: storageKeyPath]

@@ -5,9 +5,9 @@ import Foundation
 @propertyWrapper
 public struct Register<T> {
     public let lifetime: Lifetime
-    public let qualifier: Qualifier?
+    public let qualifier: (any Qualifier)?
 
-    public init(_ lifetime: Lifetime = .singleton, qualifier: Qualifier? = nil) {
+    public init(_ lifetime: Lifetime = .singleton, qualifier: (any Qualifier)? = nil) {
         self.lifetime = lifetime
         self.qualifier = qualifier
     }
@@ -17,4 +17,3 @@ public struct Register<T> {
         set { /* ignore */ }
     }
 }
-

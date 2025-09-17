@@ -7,7 +7,7 @@ import _Concurrency
 /// Task- and thread-local resolver environment used by `@Inject` and friends.
 public enum Injection {
     #if compiler(>=5.7)
-    @TaskLocal public static var currentTaskResolver: Resolver?
+    @TaskLocal public static var currentTaskResolver: (any Resolver)?
     #endif
 
     /// Optional global default resolver. Avoid in production; useful in scripts/tools.
@@ -27,7 +27,7 @@ public enum Injection {
     @discardableResult
     public static func with<T>(_ resolver: Resolver, _ body: () throws -> T) rethrows -> T {
         #if compiler(>=5.7)
-        return try currentTaskResolver.withValue(resolver) {
+        return try $currentTaskResolver.withValue(resolver) {
             try ResolverContext.with(resolver, body)
         }
         #else
@@ -35,4 +35,3 @@ public enum Injection {
         #endif
     }
 }
-
