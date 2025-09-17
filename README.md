@@ -308,9 +308,9 @@ High-level flow
 ```mermaid
 flowchart LR
     subgraph Code
-      A[@Module/@Provides/@Binds/@Register]\n(compile-time) -->|macros| B[__register(into:)]
-      C[@Injectable init(...)] -->|macros| D[init(resolver:)]
-      E[@Component(modules:...)] -->|macros| F[build()]
+      A["@Module/@Provides/@Binds/@Register<br/>(compile-time)"] -->|macros| B["__register(into:)"]
+      C["@Injectable init(...)"] -->|macros| D["init(resolver:)"]
+      E["@Component(modules: ...)"] -->|macros| F["build()"]
     end
 
     F -->|creates| G[Container]
