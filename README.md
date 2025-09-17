@@ -96,6 +96,20 @@ API Reference
     - `func exportDOT() -> String?` — Graphviz DOT for the observed graph.
     - `func prewarmSingletons()` — eagerly instantiate singletons to validate wiring and warm caches.
 
+- Global API (convenience)
+  - Resolution (uses `Injection.current` if set, else default container):
+    - `resolve<T>(_ type: T.Type = T.self, qualifier: Qualifier? = nil) -> T`
+    - `optional<T>(_ type: T.Type = T.self, qualifier: Qualifier? = nil) -> T?`
+    - `resolveMany<T>(_ type: T.Type = T.self, qualifier: Qualifier? = nil) -> [T]`
+  - Registration (operates on default container):
+    - `install(@ModuleBuilder _ builder: () -> [Registration])`
+    - `register<T>(_ type: T.Type = T.self, qualifier: Qualifier? = nil, lifetime: Lifetime = .singleton, _ factory: @escaping (Resolver) -> T)`
+    - `registerMany<T>(_ type: T.Type = T.self, qualifier: Qualifier? = nil, _ factory: @escaping (Resolver) -> T)`
+  - Default container control/utilities:
+    - `useContainer(_ container: Container)` — replace the default container.
+    - `prewarmSingletons()` — eager validate singletons on default container.
+    - `startRecording()` / `exportDOT()` — DAG helpers on default container.
+
 - Lifetime
   - `.singleton` — one instance per container that owns registration; visible to children.
   - `.scoped` — one instance per resolving container; distinct in each scope.
@@ -650,4 +664,11 @@ Cheat Sheet
   ```swift
   @Component(modules: [M.self, RealService.self]) struct C {}
   let c = C.build()
+  ```
+- Global API quickies:
+  ```swift
+  install { provide(Config.self) { _ in Config() } }
+  let cfg: Config = resolve()
+  register(Cache.self, lifetime: .singleton) { _ in Cache() }
+  useContainer(Container()) // swap the default container
   ```
