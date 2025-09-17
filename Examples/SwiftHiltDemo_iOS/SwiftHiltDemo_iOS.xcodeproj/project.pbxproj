@@ -10,6 +10,19 @@
 		1F7B6C532B5C400A00D9B001 /* SwiftHiltDemo_iOSApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F7B6C4F2B5C400A00D9B001 /* SwiftHiltDemo_iOSApp.swift */; };
 		1F7B6C542B5C400A00D9B001 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F7B6C502B5C400A00D9B001 /* ContentView.swift */; };
 		1F7B6C552B5C400A00D9B001 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1F7B6C512B5C400A00D9B001 /* Assets.xcassets */; };
+ 		A10000012E00000000000001 /* DI.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1F000010000000000000001 /* DI.swift */; };
+ 		A10000032E00000000000001 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1F000020000000000000001 /* HomeView.swift */; };
+ 		A10000052E00000000000001 /* HomeViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1F000030000000000000001 /* HomeViewModel.swift */; };
+ 		A10000072E00000000000001 /* UsersListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1F000040000000000000001 /* UsersListView.swift */; };
+ 		A10000092E00000000000001 /* UsersListViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1F000050000000000000001 /* UsersListViewModel.swift */; };
+ 		A100000B2E00000000000001 /* User.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1F000060000000000000001 /* User.swift */; };
+ 		A100000D2E00000000000001 /* UserRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1F000070000000000000001 /* UserRepository.swift */; };
+ 		A100000F2E00000000000001 /* GetUserUseCase.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1F000080000000000000001 /* GetUserUseCase.swift */; };
+ 		A10000112E00000000000001 /* GetUsersUseCase.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1F000090000000000000001 /* GetUsersUseCase.swift */; };
+ 		A10000132E00000000000001 /* UserAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1F0000A0000000000000001 /* UserAPI.swift */; };
+ 		A10000152E00000000000001 /* UserDTO.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1F0000B0000000000000001 /* UserDTO.swift */; };
+ 		A10000172E00000000000001 /* UserDataSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1F0000C0000000000000001 /* UserDataSource.swift */; };
+ 		A10000192E00000000000001 /* UserRepositoryImpl.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1F0000D0000000000000001 /* UserRepositoryImpl.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -18,6 +31,19 @@
 		1F7B6C502B5C400A00D9B001 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		1F7B6C512B5C400A00D9B001 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		1F7B6C562B5C400A00D9B001 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+ 		A1F000010000000000000001 /* DI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/DI.swift; sourceTree = "<group>"; };
+ 		A1F000020000000000000001 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/HomeView.swift; sourceTree = "<group>"; };
+ 		A1F000030000000000000001 /* HomeViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/HomeViewModel.swift; sourceTree = "<group>"; };
+ 		A1F000040000000000000001 /* UsersListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/UsersListView.swift; sourceTree = "<group>"; };
+ 		A1F000050000000000000001 /* UsersListViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/UsersListViewModel.swift; sourceTree = "<group>"; };
+ 		A1F000060000000000000001 /* User.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Domain/User.swift; sourceTree = "<group>"; };
+ 		A1F000070000000000000001 /* UserRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Domain/UserRepository.swift; sourceTree = "<group>"; };
+ 		A1F000080000000000000001 /* GetUserUseCase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Domain/GetUserUseCase.swift; sourceTree = "<group>"; };
+ 		A1F000090000000000000001 /* GetUsersUseCase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Domain/GetUsersUseCase.swift; sourceTree = "<group>"; };
+ 		A1F0000A0000000000000001 /* UserAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Data/UserAPI.swift; sourceTree = "<group>"; };
+ 		A1F0000B0000000000000001 /* UserDTO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Data/UserDTO.swift; sourceTree = "<group>"; };
+ 		A1F0000C0000000000000001 /* UserDataSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Data/UserDataSource.swift; sourceTree = "<group>"; };
+ 		A1F0000D0000000000000001 /* UserRepositoryImpl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Data/UserRepositoryImpl.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -51,7 +77,19 @@
 			isa = PBXGroup;
 			children = (
 				1F7B6C4F2B5C400A00D9B001 /* SwiftHiltDemo_iOSApp.swift */,
-				1F7B6C502B5C400A00D9B001 /* ContentView.swift */,
+				A1F000010000000000000001 /* DI.swift */,
+				A1F000020000000000000001 /* HomeView.swift */,
+				A1F000030000000000000001 /* HomeViewModel.swift */,
+				A1F000040000000000000001 /* UsersListView.swift */,
+				A1F000050000000000000001 /* UsersListViewModel.swift */,
+				A1F000060000000000000001 /* User.swift */,
+				A1F000070000000000000001 /* UserRepository.swift */,
+				A1F000080000000000000001 /* GetUserUseCase.swift */,
+				A1F000090000000000000001 /* GetUsersUseCase.swift */,
+				A1F0000A0000000000000001 /* UserAPI.swift */,
+				A1F0000B0000000000000001 /* UserDTO.swift */,
+				A1F0000C0000000000000001 /* UserDataSource.swift */,
+				A1F0000D0000000000000001 /* UserRepositoryImpl.swift */,
 				1F7B6C512B5C400A00D9B001 /* Assets.xcassets */,
 				1F7B6C562B5C400A00D9B001 /* Info.plist */,
 			);
