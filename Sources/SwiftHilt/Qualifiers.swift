@@ -8,4 +8,3 @@ public struct Named: Qualifier, ExpressibleByStringLiteral, CustomStringConverti
     public init(stringLiteral value: StringLiteralType) { self.value = value }
     public var description: String { "@Named(\(value))" }
 }
-

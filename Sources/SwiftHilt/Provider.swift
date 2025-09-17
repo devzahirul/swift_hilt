@@ -2,9 +2,9 @@ import Foundation
 
 public struct Provider<T> {
     private let resolver: Resolver
-    private let qualifier: Qualifier?
+    private let qualifier: (any Qualifier)?
 
-    public init(resolver: Resolver, qualifier: Qualifier? = nil) {
+    public init(resolver: Resolver, qualifier: (any Qualifier)? = nil) {
         self.resolver = resolver
         self.qualifier = qualifier
     }
@@ -18,7 +18,7 @@ public final class Lazy<T> {
     private let provider: Provider<T>
     private var storage: T?
 
-    public init(resolver: Resolver, qualifier: Qualifier? = nil) {
+    public init(resolver: Resolver, qualifier: (any Qualifier)? = nil) {
         self.provider = Provider<T>(resolver: resolver, qualifier: qualifier)
     }
 
@@ -29,4 +29,3 @@ public final class Lazy<T> {
         return v
     }
 }
-

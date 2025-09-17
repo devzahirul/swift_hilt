@@ -1,9 +1,9 @@
 import Foundation
 
 public protocol Resolver: AnyObject {
-    func resolve<T>(_ type: T.Type, qualifier: Qualifier?) -> T
-    func optional<T>(_ type: T.Type, qualifier: Qualifier?) -> T?
-    func resolveMany<T>(_ type: T.Type, qualifier: Qualifier?) -> [T]
+    func resolve<T>(_ type: T.Type, qualifier: (any Qualifier)?) -> T
+    func optional<T>(_ type: T.Type, qualifier: (any Qualifier)?) -> T?
+    func resolveMany<T>(_ type: T.Type, qualifier: (any Qualifier)?) -> [T]
 }
 
 final class ProviderEntry {
@@ -46,7 +46,7 @@ public final class Container: Resolver {
     @discardableResult
     public func register<T>(
         _ type: T.Type = T.self,
-        qualifier: Qualifier? = nil,
+        qualifier: (any Qualifier)? = nil,
         lifetime: Lifetime = .singleton,
         factory: @escaping (Resolver) -> T
     ) -> Self {
@@ -61,7 +61,7 @@ public final class Container: Resolver {
     @discardableResult
     public func registerMany<T>(
         _ type: T.Type = T.self,
-        qualifier: Qualifier? = nil,
+        qualifier: (any Qualifier)? = nil,
         _ factory: @escaping (Resolver) -> T
     ) -> Self {
         let key = ServiceKey(type, qualifier: qualifier)
@@ -74,7 +74,7 @@ public final class Container: Resolver {
 
     // MARK: Resolve
 
-    public func resolve<T>(_ type: T.Type = T.self, qualifier: Qualifier? = nil) -> T {
+    public func resolve<T>(_ type: T.Type = T.self, qualifier: (any Qualifier)? = nil) -> T {
         let key = ServiceKey(type, qualifier: qualifier)
         // DAG introspection: record node and potential dependency from current building key
         if let recorder = dagRecorder {
@@ -102,7 +102,7 @@ public final class Container: Resolver {
         }
     }
 
-    public func optional<T>(_ type: T.Type = T.self, qualifier: Qualifier? = nil) -> T? {
+    public func optional<T>(_ type: T.Type = T.self, qualifier: (any Qualifier)? = nil) -> T? {
         let key = ServiceKey(type, qualifier: qualifier)
         do {
             let any = try _resolve(key: key, throwIfMissing: false)
@@ -112,7 +112,7 @@ public final class Container: Resolver {
         }
     }
 
-    public func resolveMany<T>(_ type: T.Type = T.self, qualifier: Qualifier? = nil) -> [T] {
+    public func resolveMany<T>(_ type: T.Type = T.self, qualifier: (any Qualifier)? = nil) -> [T] {
         let key = ServiceKey(type, qualifier: qualifier)
         if let recorder = dagRecorder {
             // Create an aggregator pseudo-node representing [T] with same qualifier
@@ -207,7 +207,7 @@ public final class Container: Resolver {
 }
 
 // No global container singleton. Supply a resolver via ResolverContext.with(_) or SwiftUI environment.
-public extension Container {
+extension Container {
     /// Begin recording dependency edges during resolutions in this container.
     public func startRecording() { dagRecorder = DAGRecorder() }
 

@@ -5,7 +5,7 @@ struct ServiceKey: Hashable, CustomStringConvertible {
     let typeName: String
     let qualifier: AnyHashable?
 
-    init<T>(_ type: T.Type, qualifier: Qualifier? = nil) {
+    init<T>(_ type: T.Type, qualifier: (any Qualifier)? = nil) {
         self.typeID = ObjectIdentifier(type)
         self.typeName = String(reflecting: type)
         self.qualifier = qualifier.map { AnyHashable($0) }
@@ -16,4 +16,3 @@ struct ServiceKey: Hashable, CustomStringConvertible {
         return typeName
     }
 }
-

@@ -4,10 +4,11 @@ import Foundation
 import SwiftUI
 
 private final class UnconfiguredResolver: Resolver {
-    func resolve<T>(_ type: T.Type, qualifier: Qualifier?) -> T {
+    func resolve<T>(_ type: T.Type, qualifier: (any Qualifier)?) -> T {
         fatalError("No DI container provided in SwiftUI environment. Use .diContainer(_:) at the root view.")
     }
-    func optional<T>(_ type: T.Type, qualifier: Qualifier?) -> T? { nil }
+    func optional<T>(_ type: T.Type, qualifier: (any Qualifier)?) -> T? { nil }
+    func resolveMany<T>(_ type: T.Type, qualifier: (any Qualifier)?) -> [T] { [] }
 }
 
 public struct DIResolverKey: EnvironmentKey {
@@ -31,9 +32,9 @@ public extension View {
 @propertyWrapper
 public struct EnvironmentInjected<T>: DynamicProperty {
     @Environment(\.diResolver) private var resolver: Resolver
-    private let qualifier: Qualifier?
+    private let qualifier: (any Qualifier)?
 
-    public init(_ qualifier: Qualifier? = nil) { self.qualifier = qualifier }
+    public init(_ qualifier: (any Qualifier)? = nil) { self.qualifier = qualifier }
 
     public var wrappedValue: T {
         resolver.resolve(T.self, qualifier: qualifier)

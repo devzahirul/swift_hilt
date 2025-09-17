@@ -9,16 +9,16 @@ import Foundation
 /// Otherwise: fatalError with guidance.
 @propertyWrapper
 public struct Inject<T> {
-    private let qualifier: Qualifier?
+    private let qualifier: (any Qualifier)?
     private var cached: T?
 
-    public init(_ qualifier: Qualifier? = nil) {
+    public init(_ qualifier: (any Qualifier)? = nil) {
         self.qualifier = qualifier
     }
 
     // Convenience initializer to allow syntax: @Inject(T.self)
     public init(_ type: T.Type) { self.qualifier = nil }
-    public init(_ type: T.Type, qualifier: Qualifier?) { self.qualifier = qualifier }
+    public init(_ type: T.Type, qualifier: (any Qualifier)?) { self.qualifier = qualifier }
 
     // Accessed if used without enclosing-instance support
     public var wrappedValue: T {

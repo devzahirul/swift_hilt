@@ -13,7 +13,7 @@ public enum ModuleBuilder {
 
 public func provide<T>(
     _ type: T.Type = T.self,
-    qualifier: Qualifier? = nil,
+    qualifier: (any Qualifier)? = nil,
     lifetime: Lifetime = .singleton,
     _ factory: @escaping (Resolver) -> T
 ) -> Registration {
@@ -22,7 +22,7 @@ public func provide<T>(
 
 public func contribute<T>(
     _ type: T.Type = T.self,
-    qualifier: Qualifier? = nil,
+    qualifier: (any Qualifier)? = nil,
     _ factory: @escaping (Resolver) -> T
 ) -> Registration {
     Registration { c in c.registerMany(type, qualifier: qualifier, factory) }
@@ -34,4 +34,3 @@ public extension Container {
         regs.forEach { $0.apply(self) }
     }
 }
-

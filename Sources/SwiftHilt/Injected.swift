@@ -4,10 +4,10 @@ import Foundation
 /// The current context is established via `ResolverContext.with(_:)` or by frameworks (SwiftUI Environment).
 @propertyWrapper
 public struct Injected<T> {
-    private let qualifier: Qualifier?
+    private let qualifier: (any Qualifier)?
     private var value: T?
 
-    public init(_ qualifier: Qualifier? = nil) {
+    public init(_ qualifier: (any Qualifier)? = nil) {
         self.qualifier = qualifier
     }
 
