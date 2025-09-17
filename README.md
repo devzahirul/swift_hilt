@@ -272,3 +272,98 @@ Micro Macros (MVP)
   let ds = c.resolve(RemoteDataSource2.self)
   let repo: UserRepository = c.resolve(UserRepository.self)
   ```
+
+Using Macros End‑to‑End (Clean Architecture Example)
+```swift
+import SwiftHilt
+
+// Domain
+protocol UserRepository { func get(id: String) -> User }
+struct GetUserUseCase { let repo: UserRepository; init(repo: UserRepository) { self.repo = repo } }
+struct User { let id: String; let name: String }
+
+// Infrastructure providers via module
+@Module
+struct InfraModule {
+  @Provides(lifetime: .singleton)
+  static func httpClient() -> HttpClient { HttpClient() }
+
+  @Provides(lifetime: .singleton, qualifier: Named("base"))
+  static func baseURL() -> URL { URL(string: "https://api.example.com/user/")! }
+}
+
+// Injectable types (constructor injection)
+@Injectable
+final class RemoteDataSource { init(client: HttpClient, @InjectedURL base: URL) { /* ... */ } }
+// Note: qualifiers on parameters are not supported by macros yet; use runtime resolution
+
+@Injectable
+final class CacheDataSource { init() {} }
+
+@Injectable
+@Binds(UserRepository.self, lifetime: .scoped)
+final class UserRepositoryImpl: UserRepository {
+  let remote: RemoteDataSource
+  let cache: CacheDataSource
+  init(remote: RemoteDataSource, cache: CacheDataSource) { self.remote = remote; self.cache = cache }
+  func get(id: String) -> User { /* ... */ User(id: id, name: "Alice") }
+}
+
+@Component(modules: [InfraModule.self, UserRepositoryImpl.self])
+struct AppComponent {}
+
+// Build and register remaining injectables using synthesized init(resolver:)
+let c = AppComponent.build()
+c.register(RemoteDataSource.self) { r in RemoteDataSource(resolver: r) }
+c.register(CacheDataSource.self, lifetime: .singleton) { r in CacheDataSource(resolver: r) }
+
+// Compose higher‑level types with runtime registrations (no macro needed)
+c.register(GetUserUseCase.self, lifetime: .transient) { r in GetUserUseCase(repo: r.resolve(UserRepository.self)) }
+
+// Use
+let useCase = c.resolve(GetUserUseCase.self)
+```
+
+Macro Requirements and Setup
+- Use Xcode 15 or Swift 5.9+.
+- When importing `SwiftHilt`, macros are re‑exported, so `import SwiftHilt` is enough.
+- If building from the command line, ensure the swift toolchain has macro support.
+
+Macro Pitfalls and Current Limits
+- `@Provides` supports zero‑parameter static functions in MVP. For functions with parameters, register via runtime or wait for parameter support.
+- Qualifiers in macros are supported for `@Provides` and `@Binds`, but not yet on `@Injectable` parameters. Use runtime resolution inside factories when qualifiers are needed.
+- `@Binds` requires `@Injectable` on the implementation so the synthesized `init(resolver:)` exists.
+- `@Component(modules:)` accepts modules and any types that provide a `__register(into:)` (e.g., from `@Module` or `@Binds`).
+
+Runtime‑Only Path (no macros)
+- You can do everything via `register`/`install`/`contribute` without macros. Macros simply generate registration glue to reduce boilerplate.
+
+Overriding and Testing with Macros
+- Build a test container and re‑register bindings before resolving entry points.
+- If a production type is bound via `@Binds` and included in a `@Component`, you can either:
+  - Build the component and override with `register` calls (later registrations win), or
+  - Create a test module with providers and use a test‑specific component that installs that module.
+
+Cheat Sheet
+- Register a concrete type constructed from DI:
+  ```swift
+  @Injectable final class Foo { init(bar: Bar) {} }
+  c.register(Foo.self) { r in Foo(resolver: r) }
+  ```
+- Bind a protocol to an implementation:
+  ```swift
+  @Injectable
+  @Binds(Service.self, lifetime: .scoped)
+  final class RealService: Service { init(dep: Dep) {} }
+  RealService.__register(into: c)
+  ```
+- Provide primitives and singletons via modules:
+  ```swift
+  @Module struct M { @Provides(lifetime: .singleton) static func cfg() -> Config { Config() } }
+  M.__register(into: c)
+  ```
+- Compose a component from modules:
+  ```swift
+  @Component(modules: [M.self, RealService.self]) struct C {}
+  let c = C.build()
+  ```
