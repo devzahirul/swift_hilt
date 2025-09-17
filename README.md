@@ -18,6 +18,7 @@ Table of Contents
 - Testing Guidance
 - SwiftUI and UIKit (Optional)
 - Roadmap (Macros and More)
+ - Visual Overview
 
 What You Get
 - Type‑safe resolution using concrete types and optional qualifiers.
@@ -272,6 +273,102 @@ Micro Macros (MVP)
   let ds = c.resolve(RemoteDataSource2.self)
   let repo: UserRepository = c.resolve(UserRepository.self)
   ```
+
+Visual Overview
+---------------
+
+High-level flow
+
+```mermaid
+flowchart LR
+    subgraph Code
+      A[@Module/@Provides/@Binds/@Register]\n(compile-time) -->|macros| B[__register(into:)]
+      C[@Injectable init(...)] -->|macros| D[init(resolver:)]
+      E[@Component(modules:...)] -->|macros| F[build()]
+    end
+
+    F -->|creates| G[Container]
+    B -->|registers| G
+    D -. used by .-> B
+    H[Resolve T] -->|calls| G
+    G -->|constructs via factories| I[(Instances)]
+    style I fill:#e6f7ff,stroke:#1d74f2
+
+    J{startRecording()?} -- yes --> K[DAG Recorder]
+    G -. emits edges .-> K
+```
+
+Clean Architecture layers
+
+```mermaid
+flowchart LR
+  subgraph Domain
+    U[UseCase]
+    P[Protocols]
+  end
+  subgraph Data
+    R[Repository Impl]
+    D[Data Sources]
+  end
+  subgraph Infra
+    N[HTTP/DB/Config]
+  end
+
+  U --> P
+  P --> R
+  R --> D
+  D --> N
+```
+
+Container hierarchy and scopes
+
+```mermaid
+flowchart TB
+  App[App Container] --> Scene[Child Container]
+  Scene --> Feature[Child Container]
+  classDef s fill:#fef6e4,stroke:#f4a261
+  class App,Scene,Feature s
+
+  subgraph Cache Behavior
+    S1[.singleton]:::s -->|cached at owner container| App
+    S2[.scoped]:::s -->|cached at resolving container| Feature
+    S3[.transient]:::s -->|no caching| none(( ))
+  end
+```
+
+Resolution and DAG recording (example path)
+
+```mermaid
+sequenceDiagram
+  participant Client as Client code
+  participant C as Container
+  participant ProvUC as Provider<GetUserUseCase>
+  participant ProvRepo as Provider<UserRepository>
+  participant ProvRDS as Provider<RemoteDataSource>
+
+  Client->>C: resolve(GetUserUseCase)
+  C->>ProvUC: factory(resolver)
+  ProvUC->>C: resolve(UserRepository)
+  C->>ProvRepo: factory(resolver)
+  ProvRepo->>C: resolve(RemoteDataSource)
+  C->>ProvRDS: factory(resolver)
+  ProvRDS-->>C: RemoteDataSource
+  ProvRepo-->>C: UserRepositoryImpl
+  ProvUC-->>C: GetUserUseCase
+  Note over C: If recording, edges are captured\nUC -> Repo -> RDS
+```
+
+Sample DOT output (Graphviz)
+
+```
+digraph Dependencies {
+  rankdir=LR;
+  "GetUserUseCase" -> "UserRepository";
+  "UserRepository" -> "RemoteDataSource";
+  "RemoteDataSource" -> "HttpClient";
+  "RemoteDataSource" -> "URL @Named(prodBase)";
+}
+```
 
 Using Macros End‑to‑End (Clean Architecture Example)
 ```swift
