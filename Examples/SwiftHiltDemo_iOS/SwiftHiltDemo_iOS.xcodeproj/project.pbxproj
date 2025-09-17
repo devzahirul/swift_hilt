@@ -141,7 +141,6 @@
 			);
 			mainGroup = 1F7B6C422B5C400A00D9B001;
 			packageReferences = (
-				0B54A72D2E7AC79600F6BBAA /* XCLocalSwiftPackageReference "../../../swift_hilt" */,
 			);
 			productRefGroup = 1F7B6C4D2B5C400A00D9B001 /* Products */;
 			projectDirPath = "";
@@ -286,10 +285,6 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		0B54A72D2E7AC79600F6BBAA /* XCLocalSwiftPackageReference "../../../swift_hilt" */ = {
-			isa = XCLocalSwiftPackageReference;
-			relativePath = ../../../swift_hilt;
-		};
 /* End XCLocalSwiftPackageReference section */
 	};
 	rootObject = 1F7B6C432B5C400A00D9B001 /* Project object */;
