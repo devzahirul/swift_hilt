@@ -13,42 +13,13 @@ let package = Package(
         .library(
             name: "SwiftHilt",
             targets: ["SwiftHilt"]
-        ),
-        .executable(
-            name: "SwiftHiltDemo",
-            targets: ["SwiftHiltDemo"]
-        ),
-        .executable(
-            name: "DAGSample",
-            targets: ["DAGSample"]
-        ),
+        )
     ],
     dependencies: [],
     targets: [
         .target(
             name: "SwiftHilt",
             path: "Sources/SwiftHilt"
-        ),
-        .executableTarget(
-            name: "SwiftHiltDemo",
-            dependencies: ["SwiftHilt"],
-            path: "Examples/SwiftHiltDemo",
-            resources: [
-                .process("Resources")
-            ]
-        ),
-        .executableTarget(
-            name: "SwiftHiltDemo_iOS",
-            dependencies: ["SwiftHilt"],
-            path: "Examples/SwiftHiltDemo_iOS/SwiftHiltDemo_iOS",
-            resources: [
-                .process("Resources")
-            ]
-        ),
-        .executableTarget(
-            name: "DAGSample",
-            dependencies: ["SwiftHilt"],
-            path: "Examples/DAGSample"
         ),
         .testTarget(
             name: "SwiftHiltTests",
