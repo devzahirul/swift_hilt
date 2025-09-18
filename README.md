@@ -267,9 +267,7 @@ Roadmap (Macros and More)
   - Freeze provider tables post‑build; eager singletons; microbenchmarks.
 
 Examples
-- macOS SwiftUI demo: `SwiftHiltDemo` (run the scheme in Xcode).
-- iOS SwiftUI demo: `Examples/SwiftHiltDemo_iOS/SwiftHiltDemo_iOS.xcodeproj`.
-- Pure Swift DAG sample: `DAGSample` (prints Graphviz DOT).
+- iOS SwiftUI demo (Task Manager): `Examples/SwiftHiltDemoiOS/SwiftHiltDemoiOS.xcodeproj`.
 
 Guides
 - MVVM + Clean Architecture (iOS): docs/MVVM_CleanArchitecture.md
@@ -601,6 +599,69 @@ let useCase = ep.getUserUseCase
 // Use
 let useCase = c.resolve(GetUserUseCase.self)
 ```
+
+Example: iOS Task Manager (SwiftUI + SwiftData)
+-----------------------------------------------
+
+A full, pragmatic example lives at `Examples/SwiftHiltDemoiOS/SwiftHiltDemoiOS.xcodeproj`. It demonstrates Clean Architecture with SwiftHilt, SwiftUI, and SwiftData (with an in‑memory fallback for tests and older OSes).
+
+- Domain (pure Swift)
+  - Types: `Todo`, `TaskPriority`, `TaskQuery`, `TaskSort`
+    - File: `Examples/SwiftHiltDemoiOS/SwiftHiltDemoiOS/Domain/TaskModels.swift`
+  - Protocols: `TaskRepository`
+    - File: `Examples/SwiftHiltDemoiOS/SwiftHiltDemoiOS/Domain/TaskRepository.swift`
+  - Use cases: `CreateTask`, `UpdateTask`, `DeleteTask`, `ToggleTaskCompletion`, `QueryTasks`, `ObserveTasks`
+    - File: `Examples/SwiftHiltDemoiOS/SwiftHiltDemoiOS/UseCases/TaskUseCases.swift`
+
+- Data Layer
+  - In‑memory repository: reference implementation, async‑safe via a serial queue
+    - File: `Examples/SwiftHiltDemoiOS/SwiftHiltDemoiOS/Data/InMemoryTaskRepository.swift`
+  - SwiftData repository: `@Model SDTask` + `ModelContext(container)`
+    - File: `Examples/SwiftHiltDemoiOS/SwiftHiltDemoiOS/Data/SwiftDataTaskRepository.swift`
+    - Availability: compiled when SwiftData is available (iOS 17+). The DI chooses this by default on iOS 17+.
+
+- DI Wiring
+  - File: `Examples/SwiftHiltDemoiOS/SwiftHiltDemoiOS/DI.swift`
+  - Registers `TaskRepository` (SwiftData on iOS 17+, otherwise in‑memory), all use cases, and a small sample user module.
+  - UI tests can force the in‑memory repo with env var `UITEST_INMEMORY=1`.
+
+- UI (SwiftUI)
+  - List + filters + search: `TaskListView`, `TaskListViewModel`
+    - Files:
+      - `Examples/SwiftHiltDemoiOS/SwiftHiltDemoiOS/Presentation/TaskListView.swift`
+      - `Examples/SwiftHiltDemoiOS/SwiftHiltDemoiOS/Presentation/TaskListViewModel.swift`
+  - Detail + create/edit: `TaskDetailView`, `TaskDetailViewModel`
+    - Files:
+      - `Examples/SwiftHiltDemoiOS/SwiftHiltDemoiOS/Presentation/TaskDetailView.swift`
+      - `Examples/SwiftHiltDemoiOS/SwiftHiltDemoiOS/Presentation/TaskDetailViewModel.swift`
+  - App entry: `SwiftHiltDemoiOSApp.swift`
+    - File: `Examples/SwiftHiltDemoiOS/SwiftHiltDemoiOS/SwiftHiltDemoiOSApp.swift`
+
+Running the Example
+- Open `Examples/SwiftHiltDemoiOS/SwiftHiltDemoiOS.xcodeproj` in Xcode 16+.
+- Select an iOS 17+ simulator/device and run the `SwiftHiltDemoiOS` scheme.
+- The list supports quick add, search, filter (Today/Upcoming/All/Completed), toggle complete, and swipe‑to‑delete. Tap a row to edit.
+
+Testing the Example
+- Unit Tests (DI‑driven)
+  - Target: `SwiftHiltDemoiOSTests`
+  - Files:
+    - `InMemoryTaskRepositoryTests.swift` — CRUD, toggle, queries using a DI test container
+    - `TaskListViewModelTests.swift` — refresh + search behavior
+    - `TaskDetailViewModelTests.swift` — create, edit, delete flows
+    - `SwiftDataTaskRepositoryTests.swift` — CRUD against in‑memory SwiftData (iOS 17+)
+  - Pattern: each test builds a `Container()`, registers `TaskRepository` and use cases, then calls `useContainer(c)` so view models and use cases resolve through SwiftHilt.
+
+- UI Tests (stable selectors + DI toggle)
+  - Target: `SwiftHiltDemoiOSUITests`
+  - File: `TaskListUITests.swift`
+  - Scenarios: quick add → toggle → filter → delete, create via sheet → edit/save, search, set due date/priority, filter Completed vs All, Save disabled on empty title.
+  - The UI test target launches the app with `UITEST_INMEMORY=1`, forcing `InMemoryTaskRepository` for predictability.
+
+Notes
+- The domain model is named `Todo` to avoid a naming collision with Swift concurrency’s `Task` type.
+- `SwiftDataTaskRepository` uses a dedicated `ModelContext(container)` instead of `container.mainContext` to avoid main‑actor constraints in the repository.
+- You can easily swap repositories in DI for previews or tests.
 
 Macro Requirements and Setup
 - Use Xcode 15 or Swift 5.9+.
