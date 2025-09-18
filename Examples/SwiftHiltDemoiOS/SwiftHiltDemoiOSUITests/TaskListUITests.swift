@@ -28,9 +28,13 @@ final class TaskListUITests: XCTestCase {
         XCTAssertTrue(toggle.exists)
         toggle.tap()
 
-        // Switch to Completed filter and verify
-        let completed = app.segmentedControls.buttons["Completed"]
-        if completed.waitForExistence(timeout: 2) { completed.tap() }
+        // Switch to Completed filter via the top-right menu and verify
+        let filterMenu = app.buttons["filterMenuButton"]
+        XCTAssertTrue(filterMenu.waitForExistence(timeout: 3))
+        filterMenu.tap()
+        let completed = app.buttons["Completed"]
+        XCTAssertTrue(completed.waitForExistence(timeout: 2))
+        completed.tap()
         XCTAssertTrue(app.staticTexts["UI Task 1"].waitForExistence(timeout: 2))
 
         // Delete via swipe
@@ -132,15 +136,16 @@ final class TaskListUITests: XCTestCase {
         toggleA.tap()
 
         // Completed filter
-        let completed = app.segmentedControls.buttons["Completed"]
-        XCTAssertTrue(completed.waitForExistence(timeout: 2))
-        completed.tap()
+        let filterMenu = app.buttons["filterMenuButton"]
+        XCTAssertTrue(filterMenu.waitForExistence(timeout: 2))
+        filterMenu.tap()
+        app.buttons["Completed"].tap()
         XCTAssertTrue(app.staticTexts["Task A"].waitForExistence(timeout: 2))
         XCTAssertFalse(app.staticTexts["Task B"].waitForExistence(timeout: 1))
 
         // All filter shows both
-        let all = app.segmentedControls.buttons["All"]
-        if all.waitForExistence(timeout: 1) { all.tap() }
+        filterMenu.tap()
+        app.buttons["All"].tap()
         XCTAssertTrue(app.staticTexts["Task A"].waitForExistence(timeout: 2))
         XCTAssertTrue(app.staticTexts["Task B"].waitForExistence(timeout: 2))
     }

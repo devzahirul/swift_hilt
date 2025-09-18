@@ -40,15 +40,16 @@ struct TaskListView: View {
             .listStyle(.insetGrouped)
             .navigationTitle("Tasks")
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Picker("Filter", selection: $vm.filter) {
-                        ForEach(TaskListViewModel.Filter.allCases) { f in
-                            Text(f.rawValue.capitalized).tag(f)
-                        }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Menu {
+                        Button("Today") { vm.onFilterChanged(.today) }
+                        Button("Upcoming") { vm.onFilterChanged(.upcoming) }
+                        Button("All") { vm.onFilterChanged(.all) }
+                        Button("Completed") { vm.onFilterChanged(.completed) }
+                    } label: {
+                        Label("Filter", systemImage: "line.3.horizontal.decrease.circle")
                     }
-                    .pickerStyle(.segmented)
-                    .frame(width: 280)
-                    .onChange(of: vm.filter) { _, new in vm.onFilterChanged(new) }
+                    .accessibilityIdentifier("filterMenuButton")
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { isPresentingCreate = true } label: { Image(systemName: "plus") }
