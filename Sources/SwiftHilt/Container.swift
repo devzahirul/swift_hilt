@@ -22,6 +22,9 @@ final class ProviderEntry {
     }
 }
 
+/// Dependency injection container that acts as both registry and resolver.
+/// - Thread-safe via a recursive lock (factories may resolve within).
+/// - Supports parent/child scopes and multibindings.
 public final class Container: Resolver {
     public private(set) weak var parent: Container?
 
@@ -38,10 +41,13 @@ public final class Container: Resolver {
         self.parent = parent
     }
 
+    /// Creates a child container inheriting providers and singletons from this container.
+    /// The child maintains its own `.scoped` cache.
     public func child() -> Container {
         Container(parent: self)
     }
 
+    /// Clears the `.scoped` cache for this container (does not affect parent caches).
     public func clearCache() {
         lock.lock(); defer { lock.unlock() }
         cache.removeAll()
@@ -49,6 +55,8 @@ public final class Container: Resolver {
 
     // MARK: Registration
 
+    /// Registers a provider for `T` with an optional qualifier and lifetime.
+    /// If a previous provider exists in this container for the same key, its cache entry is cleared.
     @discardableResult
     public func register<T>(
         _ type: T.Type = T.self,
@@ -64,6 +72,7 @@ public final class Container: Resolver {
         return self
     }
 
+    /// Contributes a provider of `T` to a multibinding list (resolved via `resolveMany`).
     @discardableResult
     public func registerMany<T>(
         _ type: T.Type = T.self,
@@ -80,6 +89,7 @@ public final class Container: Resolver {
 
     // MARK: Resolve
 
+    /// Resolves an instance of `T` or traps in DEBUG if the binding is missing or of mismatched type.
     public func resolve<T>(_ type: T.Type = T.self, qualifier: (any Qualifier)? = nil) -> T {
         let key = ServiceKey(type, qualifier: qualifier)
         // DAG introspection: record node and potential dependency from current building key
@@ -108,6 +118,7 @@ public final class Container: Resolver {
         }
     }
 
+    /// Resolves an optional instance of `T`. Returns `nil` if missing.
     public func optional<T>(_ type: T.Type = T.self, qualifier: (any Qualifier)? = nil) -> T? {
         let key = ServiceKey(type, qualifier: qualifier)
         do {
@@ -118,6 +129,7 @@ public final class Container: Resolver {
         }
     }
 
+    /// Resolves all contributions registered for `T` (optionally qualified).
     public func resolveMany<T>(_ type: T.Type = T.self, qualifier: (any Qualifier)? = nil) -> [T] {
         let key = ServiceKey(type, qualifier: qualifier)
         if let recorder = dagRecorder {
@@ -215,6 +227,7 @@ public final class Container: Resolver {
 // No global container singleton. Supply a resolver via ResolverContext.with(_) or SwiftUI environment.
 extension Container {
     /// Begin recording dependency edges during resolutions in this container.
+    /// Begin recording dependency edges during resolutions in this container.
     public func startRecording() { dagRecorder = DAGRecorder() }
 
     /// Stop recording and return a snapshot of the dependency graph.
@@ -231,6 +244,7 @@ extension Container {
     }
 
     /// Export the recorded graph in DOT format (Graphviz).
+    /// Export the recorded graph as Graphviz DOT, or nil if not recording.
     public func exportDOT() -> String? {
         guard let rec = dagRecorder else { return nil }
         do { return try buildTopologicalPlan(nodes: rec.nodes, edges: rec.edges).dot() }
@@ -239,6 +253,8 @@ extension Container {
 
     /// Eagerly instantiate all singleton providers registered in this container hierarchy.
     /// This validates wiring and warms caches without needing an explicit DAG.
+    /// Eagerly instantiate all singleton providers in this container and its ancestors.
+    /// Useful to validate wiring and warm caches.
     public func prewarmSingletons() {
         lock.lock(); let localProviders = providers; lock.unlock()
         for (key, entry) in localProviders where entry.lifetime == .singleton {

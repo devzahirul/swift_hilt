@@ -273,7 +273,8 @@ Examples
 
 Guides
 - MVVM + Clean Architecture (iOS): docs/MVVM_CleanArchitecture.md
- - SwiftHilt Reference: docs/SwiftHilt_Reference.md
+- SwiftHilt Reference: docs/SwiftHilt_Reference.md
+ - Testing Guide: docs/Testing_Guide.md
 
 Micro Macros (MVP)
 - A minimal macro target `SwiftHiltMacros` is included. It provides:

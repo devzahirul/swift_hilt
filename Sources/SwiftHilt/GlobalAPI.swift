@@ -21,25 +21,30 @@ public enum SwiftHiltRuntime {
 // MARK: - Global resolution shortcuts
 
 
+/// Resolve `T` using the current resolver environment (Task/thread/global) or the default container.
 public func resolve<T>(_ type: T.Type = T.self, qualifier: (any Qualifier)? = nil) -> T {
     SwiftHiltRuntime.currentResolver.resolve(type, qualifier: qualifier)
 }
 
+/// Optionally resolve `T`; returns nil if missing.
 public func optional<T>(_ type: T.Type = T.self, qualifier: (any Qualifier)? = nil) -> T? {
     SwiftHiltRuntime.currentResolver.optional(type, qualifier: qualifier)
 }
 
+/// Resolve all contributions of `T` as an array.
 public func resolveMany<T>(_ type: T.Type = T.self, qualifier: (any Qualifier)? = nil) -> [T] {
     SwiftHiltRuntime.currentResolver.resolveMany(type, qualifier: qualifier)
 }
 
 // MARK: - Global registration shortcuts (default container)
 
+/// Install a module (list of registrations) into the default container.
 public func install(@ModuleBuilder _ builder: () -> [Registration]) {
     SwiftHiltRuntime.defaultContainer.install(builder)
 }
 
 @discardableResult
+/// Register a provider in the default container.
 public func register<T>(
     _ type: T.Type = T.self,
     qualifier: (any Qualifier)? = nil,
@@ -50,6 +55,7 @@ public func register<T>(
 }
 
 @discardableResult
+/// Contribute a multibinding in the default container.
 public func registerMany<T>(
     _ type: T.Type = T.self,
     qualifier: (any Qualifier)? = nil,
@@ -60,12 +66,15 @@ public func registerMany<T>(
 
 // MARK: - Global utilities (default container)
 
+/// Replace the global default container used by the facade.
 public func useContainer(_ container: Container) { SwiftHiltRuntime.useContainer(container) }
 
+/// Eagerly instantiate singletons in the default container.
 public func prewarmSingletons() { SwiftHiltRuntime.defaultContainer.prewarmSingletons() }
 
+/// Begin recording dependency edges in the default container.
 public func startRecording() { SwiftHiltRuntime.defaultContainer.startRecording() }
 
 @discardableResult
+/// Export the recorded graph in DOT from the default container.
 public func exportDOT() -> String? { SwiftHiltRuntime.defaultContainer.exportDOT() }
-

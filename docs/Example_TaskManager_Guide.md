@@ -8,6 +8,14 @@ Overview
 - DI: SwiftHilt registers TaskRepository + use cases and resolves them in VMs via resolve().
 - Tests: Unit + UI with deterministic in-memory option.
 
+Quick Start
+-----------
+1) Open `Examples/SwiftHiltDemoiOS/SwiftHiltDemoiOS.xcodeproj`.
+2) In `SwiftHiltDemoiOSApp`, DI is initialized via `loadDependency()`; run the app on iOS 17+.
+3) Add a quick task at the top of the list, toggle/complete, filter via the toolbar menu, swipe to delete.
+4) Tap + to create a task with due date and priority; tap a row to edit.
+5) Run tests: unit (`SwiftHiltDemoiOSTests`) and UI (`SwiftHiltDemoiOSUITests`). UI tests set `UITEST_INMEMORY=1` automatically.
+
 Domain
 ------
 - Models
@@ -100,4 +108,3 @@ Extending the Example
 - Recurring tasks, notifications (UserNotifications)
 - Import/export JSON; cloud sync
 - Snapshot tests and accessibility audit
-

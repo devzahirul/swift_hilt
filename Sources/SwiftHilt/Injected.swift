@@ -2,6 +2,7 @@ import Foundation
 
 /// Injects a dependency from the current resolver context.
 /// The current context is established via `ResolverContext.with(_:)` or by frameworks (SwiftUI Environment).
+/// Resolve from the current resolver environment (thread/task/global) without enclosing HasResolver.
 @propertyWrapper
 public struct Injected<T> {
     private let qualifier: (any Qualifier)?

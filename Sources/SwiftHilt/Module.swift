@@ -1,5 +1,6 @@
 import Foundation
 
+/// A registration operation that applies to a container.
 public struct Registration {
     let apply: (Container) -> Void
 }
@@ -11,6 +12,7 @@ public enum ModuleBuilder {
     }
 }
 
+/// Declare a single binding for `T` inside a module builder.
 public func provide<T>(
     _ type: T.Type = T.self,
     qualifier: (any Qualifier)? = nil,
@@ -20,6 +22,7 @@ public func provide<T>(
     Registration { c in c.register(type, qualifier: qualifier, lifetime: lifetime, factory: factory) }
 }
 
+/// Contribute a multibinding for `T` inside a module builder (resolved via `resolveMany`).
 public func contribute<T>(
     _ type: T.Type = T.self,
     qualifier: (any Qualifier)? = nil,
@@ -29,6 +32,7 @@ public func contribute<T>(
 }
 
 public extension Container {
+    /// Apply a list of registrations into this container.
     func install(@ModuleBuilder _ builder: () -> [Registration]) {
         let regs = builder()
         regs.forEach { $0.apply(self) }

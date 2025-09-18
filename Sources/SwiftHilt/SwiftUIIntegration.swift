@@ -11,11 +11,13 @@ private final class UnconfiguredResolver: Resolver {
     func resolveMany<T>(_ type: T.Type, qualifier: (any Qualifier)?) -> [T] { [] }
 }
 
+/// Environment key that stores a Resolver for SwiftUI views.
 public struct DIResolverKey: EnvironmentKey {
     public static let defaultValue: Resolver = UnconfiguredResolver()
 }
 
 public extension EnvironmentValues {
+    /// The Resolver available to SwiftUI views via `.diContainer(_:)`.
     var diResolver: Resolver {
         get { self[DIResolverKey.self] }
         set { self[DIResolverKey.self] = newValue }
@@ -29,6 +31,7 @@ public extension View {
     }
 }
 
+/// Resolves `T` from the SwiftUI `diResolver` environment.
 @propertyWrapper
 public struct EnvironmentInjected<T>: DynamicProperty {
     @Environment(\.diResolver) private var resolver: Resolver
