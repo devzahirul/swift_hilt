@@ -22,6 +22,7 @@ Table of Contents
 - SwiftUI and UIKit (Optional)
 - Roadmap (Macros and More)
  - Visual Overview
+ - Example: iOS Task Manager
 
 What You Get
 - Type‑safe resolution using concrete types and optional qualifiers.
@@ -267,10 +268,12 @@ Roadmap (Macros and More)
   - Freeze provider tables post‑build; eager singletons; microbenchmarks.
 
 Examples
-- iOS SwiftUI demo (Task Manager): `Examples/SwiftHiltDemoiOS/SwiftHiltDemoiOS.xcodeproj`.
+- iOS SwiftUI demo (Task Manager): `Examples/SwiftHiltDemoiOS/SwiftHiltDemoiOS.xcodeproj`
+  - Full guide: docs/Example_TaskManager_Guide.md
 
 Guides
 - MVVM + Clean Architecture (iOS): docs/MVVM_CleanArchitecture.md
+ - SwiftHilt Reference: docs/SwiftHilt_Reference.md
 
 Micro Macros (MVP)
 - A minimal macro target `SwiftHiltMacros` is included. It provides:
