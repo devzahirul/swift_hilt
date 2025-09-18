@@ -270,6 +270,8 @@ Roadmap (Macros and More)
 Examples
 - iOS SwiftUI demo (Task Manager): `Examples/SwiftHiltDemoiOS/SwiftHiltDemoiOS.xcodeproj`
   - Full guide: docs/Example_TaskManager_Guide.md
+- Console demo (pure Swift): `Examples/ConsoleDemo`
+  - `swift run ConsoleDemo` (from the folder) to try it
 
 Guides
 - MVVM + Clean Architecture (iOS): docs/MVVM_CleanArchitecture.md
